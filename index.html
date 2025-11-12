@@ -12,14 +12,14 @@ background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%)}
 header{padding:10px 12px 4px;text-align:center;position:relative}
 h1{margin:0;font-size:1.6rem;font-weight:800;color:#f0f9ff}
 
-/* 音樂鍵 */
+/* 音樂按鍵 */
 #btnMusic{
   position:absolute;right:14px;top:12px;background:none;border:none;font-size:1.55rem;
   color:#e5e7eb;cursor:pointer;filter:drop-shadow(0 0 3px rgba(0,0,0,.5));z-index:2000
 }
 #btnMusic.off{opacity:.6;text-decoration:line-through}
 
-/* 主要版面：桌機雙欄 */
+/* 桌機雙欄 */
 .wrap{max-width:1100px;margin:14px auto 28px;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:12px}
 .panel{background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);
 backdrop-filter:blur(6px);padding:12px}
@@ -55,25 +55,16 @@ color:#e6f7ff;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700
 border-color:rgba(248,113,113,.45);color:#ffecec}
 
 /* Logo（右下固定） */
-.logo-fixed{
-  position:fixed;right:16px;bottom:16px;width:90px;height:auto;opacity:.95;
-  filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:1900
-}
+.logo-fixed{position:fixed;right:16px;bottom:16px;width:90px;height:auto;opacity:.95;
+filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:1900}
 
-/* 手機版調整 */
+/* 手機：單欄 + 高度用 svh/dvh 防網址列壓縮 */
 #fabCtrl{display:none}
 #sheetBackdrop{display:none}
 @media (max-width:980px),(hover:none) and (pointer:coarse){
   h1{font-size:1.06rem}
   .wrap{grid-template-columns:1fr}
   .panel{padding:8px}
-  .legend{font-size:.74rem}
-  .controls label{font-size:.76rem}
-  .controls input[type=number]{font-size:.8rem}
-  .btn{font-size:.82rem;padding:7px 10px}
-  .logo-fixed{width:58px;right:10px;bottom:10px;z-index:1900}
-
-  /* 用 svh/dvh 避免 Android 100vh 問題 */
   #board{width:100%;height:48svh;height:48dvh}
   #chart{width:100%;height:24svh;height:24dvh}
 
@@ -95,13 +86,11 @@ border-color:rgba(248,113,113,.45);color:#ffecec}
     background:radial-gradient(120% 120% at 70% 20%,rgba(56,189,248,.35),rgba(31,41,55,.9));
     color:#e6f7ff;font-size:1.2rem;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,.45)
   }
-
   #sheetBackdrop{
     display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);opacity:0;
     pointer-events:none;transition:opacity .2s ease;z-index:1650
   }
   #sheetBackdrop.show{opacity:1;pointer-events:auto}
-
   body.drawer-open{overflow:hidden}
 }
 </style>
@@ -112,9 +101,11 @@ border-color:rgba(248,113,113,.45);color:#ffecec}
   <button id="btnMusic" title="背景音樂">🎵</button>
 </header>
 
+<!-- 右下公司 Logo -->
 <img class="logo-fixed" src="./company-logo.png" alt="Company Logo"/>
 
 <div class="wrap">
+  <!-- 左：板子 + 結果圖 -->
   <div>
     <div class="panel canvas-wrap">
       <canvas id="board" width="900" height="520"></canvas>
@@ -129,6 +120,7 @@ border-color:rgba(248,113,113,.45);color:#ffecec}
     <div class="panel"><canvas id="chart" width="900" height="220"></canvas></div>
   </div>
 
+  <!-- 右：控制（桌機）／抽屜（手機） -->
   <div class="panel controls-panel" id="controlsWrap">
     <div class="sheet-head" id="sheetHead" style="display:none"></div>
     <div class="controls">
@@ -147,9 +139,11 @@ border-color:rgba(248,113,113,.45);color:#ffecec}
   </div>
 </div>
 
+<!-- 手機：齒輪與遮罩 -->
 <button id="fabCtrl">⚙️</button>
 <div id="sheetBackdrop"></div>
 
+<!-- 音樂 -->
 <audio id="bgm" src="./bgm.mp3" preload="auto" loop></audio>
 
 <script>
@@ -158,21 +152,22 @@ const $=id=>document.getElementById(id);
 const boardEl=$('board'), chartEl=$('chart');
 const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
 
-/* ===== 音樂控制（手勢觸發） ===== */
+/* ===== 音樂（互動後播放） ===== */
 const bgm=$('bgm'), btnMusic=$('btnMusic');
 let musicOn=true, musicStarted=false;
-function setMusicUI(){btnMusic.textContent=musicOn?'🎵':'🔇';btnMusic.classList.toggle('off',!musicOn);}
+function setMusicUI(){ btnMusic.textContent=musicOn?'🎵':'🔇'; btnMusic.classList.toggle('off',!musicOn); }
 async function startBgmOnce(){ if(!musicOn||musicStarted) return; try{ bgm.currentTime=0; await bgm.play(); musicStarted=true; }catch(e){} }
 btnMusic.addEventListener('click', async()=>{ musicOn=!musicOn; setMusicUI(); if(musicOn) await startBgmOnce(); else bgm.pause(); });
 setMusicUI();
 
-/* ===== 模擬參數 ===== */
+/* ===== 狀態 ===== */
 let params={levels:+$('levels').value,pRight:+$('pRight').value,batch:+$('batch').value,releaseHz:+$('release').value,fallSpeed:+$('fall').value};
-let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],queueBatches=0,emitClock=0;
-const MAX_ACTIVE=12000,AUTO_GAP=0.85;
+let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],emitClock=0;
+const MAX_ACTIVE=12000, AUTO_GAP=0.85;
 
-/* ===== 尺寸處理 ===== */
-function sizeCanvasToDisplaySize(canvas,cssW,cssH){
+/* ===== 工具 ===== */
+function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
+function sizeCanvasToDisplaySize(canvas, cssW, cssH){
   const DPR=Math.max(1,window.devicePixelRatio||1);
   if(cssW) canvas.style.width=cssW+'px';
   if(cssH) canvas.style.height=cssH+'px';
@@ -180,25 +175,31 @@ function sizeCanvasToDisplaySize(canvas,cssW,cssH){
   const w=Math.round(rect.width*DPR), h=Math.round(rect.height*DPR);
   if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
 }
-function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
 function resizeAll(){
   if(isMobile()){ sizeCanvasToDisplaySize(boardEl); sizeCanvasToDisplaySize(chartEl); }
-  else { sizeCanvasToDisplaySize(boardEl,900,520); sizeCanvasToDisplaySize(chartEl,900,220); }
+  else{ sizeCanvasToDisplaySize(boardEl,900,520); sizeCanvasToDisplaySize(chartEl,900,220); }
   build(); drawBoard(); drawChart();
 }
 window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
 
-/* ===== 幾何 ===== */
+/* ===== 幾何（手機不留黑空） ===== */
 function build(){
-  const W=boardEl.width,H=boardEl.height,n=params.levels;
-  const bottomMargin=isMobile()?28:90;
-  const m={top:24,bottom:bottomMargin,left:24,right:24};
+  const W=boardEl.width, H=boardEl.height, n=params.levels;
+  const m={top:20,bottom:isMobile()?10:60,left:20,right:20}; // 行動版 bottom 極小
   const bw=W-m.left-m.right, bh=H-m.top-m.bottom;
-  const px=Math.min(28,Math.max(12,bw/(n+2))), ry=Math.max(16,Math.min(36,bh/(n+1.4)));
-  const cx=W/2, sy=m.top+8, dx=px/2, slots=Array.from({length:n+1},(_,k)=>cx-(n*dx)+k*px);
-  const pegs=[]; for(let r=0;r<n;r++){ const y=sy+(r+1)*ry, row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y}); pegs.push(row); }
-  geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor:sy+(n+1)*ry};
-  counts=Array(n+1).fill(0); total=0; sumK=0; balls=[]; microQueue=[]; queueBatches=0; emitClock=0;
+  const px=Math.min(28,Math.max(12,bw/(n+2)));
+  const ry=Math.max(14,Math.min(36,bh/(n+1)));              // 用 (n+1) 讓三角形剛好填滿
+  const cx=W/2, sy=m.top+6, dx=px/2;
+  const floor=H-m.bottom-6;                                 // 槽線貼近底邊
+  const slots=Array.from({length:n+1},(_,k)=>cx-(n*dx)+k*px);
+  const pegs=[];
+  for(let r=0;r<n;r++){
+    const y=sy+(r+1)*ry, row=[];
+    for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y});
+    pegs.push(row);
+  }
+  geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor};
+  counts=Array(n+1).fill(0); total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0;
   scheduleChart(); updateStats();
 }
 
@@ -207,15 +208,13 @@ function drawBoard(){
   const g=geom,ctx=B;
   ctx.clearRect(0,0,g.W,g.H);
   ctx.fillStyle='#081029'; ctx.fillRect(0,0,g.W,g.H);
-  ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.lineWidth=1.2;
-  ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
+  ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
   ctx.fillStyle='rgba(148,163,184,.85)';
   for(const row of g.pegs){ for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI); ctx.fill(); } }
   ctx.strokeStyle='rgba(56,189,248,.35)';
-  for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-16); ctx.stroke(); }
+  for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-12); ctx.stroke(); } // -12 更緊湊
   ctx.fillStyle='rgba(56,189,248,.92)';
-  for(const b of balls){ const a=b.pts[b.seg], c=b.pts[b.seg+1]||a;
-    const x=a.x+(c.x-a.x)*b.t, y=a.y+(c.y-a.y)*b.t;
+  for(const b of balls){ const a=b.pts[b.seg], c=b.pts[b.seg+1]||a; const x=a.x+(c.x-a.x)*b.t, y=a.y+(c.y-a.y)*b.t;
     ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill();
   }
 }
@@ -249,6 +248,7 @@ function makeBall(){ const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
 function microStagger(){ return Math.max(.005, Math.min(.03, .3/Math.max(1, params.batch))); }
 function scheduleBatch(){ const want=Math.max(1, Math.floor(params.batch)), s=microStagger(); for(let i=0;i<want;i++) microQueue.push(i*s); }
 
+/* ===== 迴圈 ===== */
 let last=0;
 function tick(ts){
   if(!last) last=ts;
@@ -259,7 +259,6 @@ function tick(ts){
     emitClock-=dt;
     while(emitClock<=0){
       if(auto) scheduleBatch();
-      if(queueBatches>0){ scheduleBatch(); queueBatches--; }
       emitClock += (auto? base*AUTO_GAP : base);
     }
     for(let i=0;i<microQueue.length;){
@@ -287,7 +286,7 @@ function tick(ts){
   requestAnimationFrame(tick);
 }
 
-/* ===== 統計 ===== */
+/* ===== 統計區 ===== */
 function updateStats(){
   $('statTotal').textContent=total;
   $('statMean').textContent= total? (sumK/total).toFixed(3) : '0';
@@ -319,7 +318,7 @@ function openDrawer(open){
 }
 function toggleDrawer(){ openDrawer(!wrap.classList.contains('open')); }
 function closeDrawerIfOpen(){ if(wrap.classList.contains('open')) openDrawer(false); }
-/* 保險：初始移除殘留狀態 */
+/* 初始保險：避免殘留遮罩把畫面蓋黑 */
 mask.classList.remove('show'); document.body.classList.remove('drawer-open'); wrap.classList.remove('open');
 
 function refreshDrawerHeader(){
@@ -336,22 +335,33 @@ mask.addEventListener('click',()=>openDrawer(false));
 window.addEventListener('resize',refreshDrawerHeader);
 refreshDrawerHeader();
 
-/* ===== 按鈕 ===== */
+/* ===== 按鈕：按什麼就做什麼 ===== */
 $('btnDrop').addEventListener('click', ()=>{
   startBgmOnce();
-  queueBatches++;
-  closeDrawerIfOpen(); // 在抽屜裡操作時，自動關閉抽屜
+  paused=false; $('btnPause').textContent='⏸️ 暫停';
+  scheduleBatch();          // 立刻丟一批
+  closeDrawerIfOpen();      // 關抽屜
 });
 $('btnAuto').addEventListener('click', e=>{
-  auto=!auto; e.target.textContent=auto?'🔁 自動投放：開':'🔁 自動投放：關';
-  if(auto) startBgmOnce();
+  auto=!auto;
+  e.target.textContent=auto?'🔁 自動投放：開':'🔁 自動投放：關';
+  if(auto){
+    startBgmOnce();
+    paused=false; $('btnPause').textContent='⏸️ 暫停';
+    emitClock=0;            // 立刻排程
+    scheduleBatch();        // 立即先丟一批
+  }
   closeDrawerIfOpen();
 });
 $('btnPause').addEventListener('click', e=>{
-  paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停';
-  if(!paused) closeDrawerIfOpen(); // 在抽屜內按「繼續」→ 關抽屜
+  paused=!paused;
+  e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停';
+  if(!paused) closeDrawerIfOpen();
 });
-$('btnReset').addEventListener('click', ()=>{ auto=false; $('btnAuto').textContent='🔁 自動投放：關'; build(); });
+$('btnReset').addEventListener('click', ()=>{
+  auto=false; $('btnAuto').textContent='🔁 自動投放：關';
+  build(); drawBoard(); drawChart();
+});
 
 /* ===== 啟動 ===== */
 resizeAll();
