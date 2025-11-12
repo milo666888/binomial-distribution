@@ -230,6 +230,9 @@ h1{
     const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 600;
     boardEl.style.height = Math.round(vh*0.50) + 'px';
     chartEl.style.height  = Math.round(vh*0.25) + 'px';
+// 【新增】高度剛設完立刻同步 canvas 實體尺寸
+    sizeCanvasToDisplaySize(boardEl);
+    sizeCanvasToDisplaySize(chartEl);
   }
 
   function resizeAll(){
@@ -244,6 +247,7 @@ h1{
   }
 
   /* ===== 幾何：以 12 為基準；n>12 依 12/n 比例壓縮行距 ===== */
+    /* ===== 幾何：以 12 為基準；手機且 n=12 時塞滿高度 ===== */
   function build(){
     const W=boardEl.width, H=boardEl.height, n=params.levels;
     const m = { top:20, bottom:isMobile()?10:18, left:14, right:14 };
@@ -255,17 +259,26 @@ h1{
     const cx = W/2, sy = m.top + 6;
     const floor = H - m.bottom - 6;
 
-    const targetRef = 12;                 // 以 12 為標準
-    const baseClear = 10;                 // 與基準線/邊界的安全距
-    const avail = Math.max(40, floor - sy - baseClear);
-    let baseRy = avail / targetRef;       // 12 階層時的行距（固定板高）
-    let ry = baseRy * Math.min(1, targetRef/Math.max(1,n)); // n>12 => 縮 ry
-    ry = Math.max(6, Math.min(36, ry));
+    const targetRef = 12; // 以 12 為標準
+    const useTight12 = isMobile() && n === 12; //【新增】手機 + 12 階層 → 塞滿
 
-    // 釘子半徑隨 ry 縮放
+    // 一般情況維持原本做法；手機且 12 階層時，直接把全部高度平均分成 12 段
+    const baseClear = useTight12 ? 0 : 10; //【調整】12 階層不再多留安全距
+    const avail = Math.max(40, floor - sy - baseClear);
+
+    let ry;
+    if (useTight12) {
+      ry = Math.max(6, Math.min(36, avail / n)); //【重點】剛好分成 12 份
+    } else {
+      let baseRy = avail / targetRef;
+      ry = baseRy * Math.min(1, targetRef/Math.max(1,n)); // n>12 => 縮 ry
+      ry = Math.max(6, Math.min(36, ry));
+    }
+
+    // 釘子半徑隨 ry 縮放（維持原邏輯）
     let pegR = Math.min(3, Math.max(2, ry * 0.22));
 
-    // 最後再保守檢查不要穿出底線
+    // 再保守檢查不要穿出底線
     const maxRy = (floor - (pegR + 6) - sy) / Math.max(1, n);
     if (ry > maxRy) ry = Math.max(6, maxRy);
 
@@ -283,6 +296,7 @@ h1{
     total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0;
     scheduleChart(); updateStats();
   }
+
 
   /* ===== 繪板：槽線固定 10px，嚴守框內 ===== */
   function drawBoard(){
