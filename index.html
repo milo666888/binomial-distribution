@@ -5,380 +5,344 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>二項分布模擬器（數位高爾頓板）</title>
 <style>
-:root{
-  --bg:#0f172a;--panel:#111827;--card:#1f2937;--accent:#38bdf8;--accent2:#f87171;
-  --text:#e5e7eb;--muted:#94a3b8;--logoW:90px;
-}
+:root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--accent:#38bdf8;--accent2:#f87171;--text:#e5e7eb;--muted:#94a3b8}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Arial,sans-serif;color:var(--text);
 background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%)}
-header{padding:10px 12px 4px;text-align:center;position:relative}
-h1{margin:0;font-size:1.6rem;font-weight:800;color:#f0f9ff}
 
-/* 音樂開關（右上角） */
-#btnMusic{
-  position:absolute;right:14px;top:12px;
-  background:none;border:none;font-size:1.55rem;color:#e5e7eb;cursor:pointer;
-  filter:drop-shadow(0 0 3px rgba(0,0,0,.5));z-index:80
-}
-#btnMusic.off{opacity:.6;text-decoration:line-through}
+/* Header：桌機顯示設定+音樂 */
+header{padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
+.tools{display:flex;align-items:center;gap:10px}
+.toolbtn{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid rgba(148,163,184,.25);
+  background:rgba(2,6,23,.5);color:#e5e7eb;font-size:1.05rem;cursor:pointer}
+#btnMusic.off{opacity:.65;text-decoration:line-through}
 
-/* 主要版面：桌機雙欄 */
-.wrap{max-width:1100px;margin:14px auto 28px;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:12px}
+/* 右下 Logo（桌機＋手機都固定） */
+.logo-fixed{position:fixed;right:16px;bottom:16px;width:90px;height:auto;opacity:.95;
+  filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:1900}
+
+/* 主版面 */
+.wrap{max-width:1100px;margin:12px auto 24px;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:12px}
 .panel{background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);
-backdrop-filter:blur(6px);padding:12px}
+  backdrop-filter:blur(6px);padding:12px}
 .canvas-wrap{position:relative;padding:10px;border-radius:12px;
-background:radial-gradient(1000px 360px at 50% -40%, rgba(56,189,248,.15), transparent 60%),
-linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
-border:1px solid rgba(148,163,184,.2)}
-
+  background:radial-gradient(1000px 360px at 50% -40%, rgba(56,189,248,.15), transparent 60%),
+            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+  border:1px solid rgba(148,163,184,.2)}
 #board{display:block;width:900px;height:520px;border-radius:10px;background:#0a0f1f}
 #chart{display:block;width:900px;height:220px;border-radius:10px;background:#0b1224}
-
-.legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:.85rem;margin-top:6px}
-.dot{width:12px;height:12px;border-radius:999px;display:inline-block}
-.bar{background:var(--accent)} .line{background:var(--accent2)}
+.legend{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.85rem;margin-top:6px;flex-wrap:wrap}
+.dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+.bar{background:var(--accent)}
+.line{background:var(--accent2)}
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:6px}
-.stat{padding:8px 10px;border-radius:10px;background:rgba(2,6,23,.4);border:1px solid rgba(148,163,184,.2)}
-.stat .k{font-size:.75rem;color:var(--muted)} .stat .v{font-weight:700}
+.stat{padding:6px 8px;border-radius:10px;background:rgba(2,6,23,.4);border:1px solid rgba(148,163,184,.2)}
+.stat .k{font-size:.75rem;color:var(--muted)}
+.stat .v{font-weight:700}
 
 /* 控制區 */
-.controls{padding:12px;display:grid;gap:12px;background:rgba(2,6,23,.35);
-border:1px dashed rgba(148,163,184,.25);border-radius:12px}
+.controls{padding:12px;display:grid;gap:12px;background:rgba(2,6,23,.35);border:1px dashed rgba(148,163,184,.25);border-radius:12px}
 .control{display:grid;gap:8px}
 .control label{font-size:.85rem;color:var(--muted)}
 .control input[type=number]{background:var(--card);color:var(--text);border:1px solid rgba(148,163,184,.35);
-border-radius:8px;padding:6px 10px}
+  border-radius:8px;padding:6px 10px}
 .range{appearance:none;width:100%;height:6px;border-radius:6px;background:rgba(148,163,184,.22)}
 .range::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent)}
 .range::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:none}
 .btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
 .btn{appearance:none;border:1px solid rgba(148,163,184,.35);
-background:linear-gradient(180deg,rgba(56,189,248,.18),rgba(56,189,248,.08));
-color:#e6f7ff;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700}
+  background:linear-gradient(180deg,rgba(56,189,248,.18),rgba(56,189,248,.08));
+  color:#e6f7ff;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700}
 .btn.warn{background:linear-gradient(180deg,rgba(248,113,113,.22),rgba(248,113,113,.10));
-border-color:rgba(248,113,113,.45);color:#ffecec}
+  border-color:rgba(248,113,113,.45);color:#ffecec}
 
-/* Logo（右下固定） */
-.logo-fixed{position:fixed;right:16px;bottom:16px;width:var(--logoW);height:auto;opacity:.95;
-filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:50}
-
-/* 手機：單欄、滿版高度、抽屜選單、文字更小 */
+/* 手機：單欄 + 下抽屜；不留中間空洞 */
 #fabCtrl{display:none}
 #sheetBackdrop{display:none}
 @media (max-width:980px),(hover:none) and (pointer:coarse){
-  :root{ --logoW:58px; }
-  h1{font-size:1.06rem}
   .wrap{grid-template-columns:1fr}
   .panel{padding:8px}
-  .legend{font-size:.76rem}
-  .controls label{font-size:.76rem}
-  .controls input[type=number]{font-size:.76rem}
-  .btn{font-size:.78rem;padding:6px 9px}
+  #board{width:100%;height:48svh;height:48dvh}
+  #chart{width:100%;height:24svh;height:24dvh}
 
-  /* 讓主畫面滿版（高度以視窗為基準） */
-  #board{width:100%;height:56vh}
-  #chart{width:100%;height:30vh}
-
-  /* 抽屜（bottom sheet） */
-  .controls-panel{
-    position:fixed;left:0;right:0;bottom:0;z-index:70;max-height:85vh;
-    transform:translateY(105%);transition:transform .25s ease;
-    border-radius:16px 16px 0 0;backdrop-filter:blur(8px);overflow:hidden;padding-top:6px
-  }
+  .controls-panel{position:fixed;left:0;right:0;bottom:0;z-index:1700;max-height:85svh;
+    transform:translateY(105%);transition:transform .25s ease;border-radius:16px 16px 0 0;backdrop-filter:blur(8px);
+    overflow:hidden;padding-top:6px}
   .controls-panel.open{transform:translateY(0)}
   .sheet-head{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 2px 12px}
   .sheet-title{font-weight:800}
   .sheet-close{appearance:none;border:1px solid rgba(148,163,184,.28);background:rgba(148,163,184,.12);color:#e5e7eb;border-radius:10px;padding:6px 10px;font-weight:800}
-  .controls{max-height:60vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .controls{max-height:60svh;overflow:auto;-webkit-overflow-scrolling:touch}
   .btns{position:sticky;bottom:0;background:rgba(2,6,23,.55);border-top:1px solid rgba(148,163,184,.15);padding-top:8px}
 
-  /* 齒輪 FAB 與 logo 底線齊平，並在 logo 左側固定距離 */
-  #fabCtrl{
-    display:grid;place-items:center;position:fixed;bottom:16px;z-index:80;
-    right:calc(var(--logoW) + 28px);
+  #fabCtrl{display:grid;place-items:center;position:fixed;right:84px;bottom:16px;z-index:1800;
     width:52px;height:52px;border-radius:999px;border:1px solid rgba(148,163,184,.35);
     background:radial-gradient(120% 120% at 70% 20%,rgba(56,189,248,.35),rgba(31,41,55,.9));
-    color:#e6f7ff;font-size:1.2rem;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,.45)
-  }
-  #sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:75}
+    color:#e6f7ff;font-size:1.2rem;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+  #sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:1650}
   #sheetBackdrop.show{opacity:1;pointer-events:auto}
   body.drawer-open{overflow:hidden}
 }
 </style>
 </head>
 <body>
-<header>
-  <h1>🎯 二項分布模擬器（數位高爾頓板）</h1>
-  <button id="btnMusic" title="背景音樂">🎵</button>
-</header>
+  <header>
+    <h1>🎯 二項分布模擬器（數位高爾頓板）</h1>
+    <div class="tools">
+      <button id="btnSettings" class="toolbtn" title="設定">⚙️</button>
+      <button id="btnMusic"   class="toolbtn" title="背景音樂">🎵</button>
+    </div>
+  </header>
 
-<!-- 右下公司 Logo（你 repo 的檔名） -->
-<img class="logo-fixed" src="./company-logo.png" alt="Company Logo"/>
+  <!-- 右下公司 Logo -->
+  <img class="logo-fixed" src="./company-logo.png" alt="Company Logo"/>
 
-<div class="wrap">
-  <!-- 左：板子 + 結果圖 -->
-  <div>
-    <div class="panel canvas-wrap">
-      <canvas id="board"></canvas>
-      <div class="legend"><span class="dot bar"></span> 累積次數 <span class="dot line"></span> 理論二項分布</div>
-      <div class="stats">
-        <div class="stat"><div class="k">總球數</div><div class="v" id="statTotal">0</div></div>
-        <div class="stat"><div class="k">實際平均 k̄</div><div class="v" id="statMean">0</div></div>
-        <div class="stat"><div class="k">理論平均 np</div><div class="v" id="statMeanTh">0</div></div>
-        <div class="stat"><div class="k">理論變異 np(1−p)</div><div class="v" id="statVarTh">0</div></div>
+  <div class="wrap">
+    <!-- 左：板子 + 結果圖 -->
+    <div>
+      <div class="panel canvas-wrap">
+        <canvas id="board" width="900" height="520"></canvas>
+        <div class="legend"><span class="dot bar"></span> 累積次數 <span class="dot line"></span> 理論二項分布</div>
+        <div class="stats">
+          <div class="stat"><div class="k">總球數</div><div class="v" id="statTotal">0</div></div>
+          <div class="stat"><div class="k">實際平均 k̄</div><div class="v" id="statMean">0</div></div>
+          <div class="stat"><div class="k">理論平均 np</div><div class="v" id="statMeanTh">0</div></div>
+          <div class="stat"><div class="k">理論變異 np(1−p)</div><div class="v" id="statVarTh">0</div></div>
+        </div>
+      </div>
+      <div class="panel"><canvas id="chart" width="900" height="220"></canvas></div>
+    </div>
+
+    <!-- 右：控制（桌機）／抽屜（手機） -->
+    <div class="panel controls-panel" id="controlsWrap">
+      <div class="sheet-head" id="sheetHead" style="display:none"></div>
+      <div class="controls">
+        <div class="control"><label>階層數（3~24）</label><input id="levels" type="number" min="3" max="24" value="12"/><input id="levelsR" class="range" type="range" min="3" max="24" value="12"/></div>
+        <div class="control"><label>向右機率 p（0~1）</label><input id="pRight" type="number" min="0" max="1" step="0.01" value="0.5"/><input id="pRightR" class="range" type="range" min="0" max="1" step="0.01" value="0.5"/></div>
+        <div class="control"><label>一次丟幾顆（1~200）</label><input id="batch" type="number" min="1" max="200" value="12"/><input id="batchR" class="range" type="range" min="1" max="200" value="12"/></div>
+        <div class="control"><label>出球速度（每秒幾批 0.2~20）</label><input id="release" type="number" min="0.2" max="20" step="0.1" value="3"/><input id="releaseR" class="range" type="range" min="0.2" max="20" step="0.1" value="3"/></div>
+        <div class="control"><label>下落速度倍率（0.2~3）</label><input id="fall" type="number" min="0.2" max="3" step="0.1" value="1.2"/><input id="fallR" class="range" type="range" min="0.2" max="3" step="0.1" value="1.2"/></div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="btnDrop">🎯 投放一批</button>
+        <button class="btn" id="btnAuto">🔁 自動投放：關</button>
+        <button class="btn" id="btnPause">⏸️ 暫停</button>
+        <button class="btn warn" id="btnReset">♻️ 重置</button>
       </div>
     </div>
-    <div class="panel"><canvas id="chart"></canvas></div>
   </div>
 
-  <!-- 右：控制（桌機）／抽屜（手機） -->
-  <div class="panel controls-panel" id="controlsWrap">
-    <div class="sheet-head" id="sheetHead" style="display:none"></div>
-    <div class="controls">
-      <div class="control"><label>階層數（3~24）</label><input id="levels" type="number" min="3" max="24" value="12"/><input id="levelsR" class="range" type="range" min="3" max="24" value="12"/></div>
-      <div class="control"><label>向右機率 p（0~1）</label><input id="pRight" type="number" min="0" max="1" step="0.01" value="0.5"/><input id="pRightR" class="range" type="range" min="0" max="1" step="0.01" value="0.5"/></div>
-      <div class="control"><label>一次丟幾顆（1~200）</label><input id="batch" type="number" min="1" max="200" value="12"/><input id="batchR" class="range" type="range" min="1" max="200" value="12"/></div>
-      <div class="control"><label>出球速度（每秒幾批 0.2~20）</label><input id="release" type="number" min="0.2" max="20" step="0.1" value="3"/><input id="releaseR" class="range" type="range" min="0.2" max="20" step="0.1" value="3"/></div>
-      <div class="control"><label>下落速度倍率（0.2~3）</label><input id="fall" type="number" min="0.2" max="3" step="0.1" value="1.2"/><input id="fallR" class="range" type="range" min="0.2" max="3" step="0.1" value="1.2"/></div>
-    </div>
-    <div class="btns">
-      <button class="btn" id="btnDrop">🎯 投放一批</button>
-      <button class="btn" id="btnAuto">🔁 自動投放：關</button>
-      <button class="btn" id="btnPause">⏸️ 暫停</button>
-      <button class="btn warn" id="btnReset">♻️ 重置</button>
-    </div>
-  </div>
-</div>
+  <!-- 手機：齒輪與遮罩 -->
+  <button id="fabCtrl" title="設定">⚙️</button>
+  <div id="sheetBackdrop"></div>
 
-<!-- 手機：齒輪與遮罩 -->
-<button id="fabCtrl">⚙️</button>
-<div id="sheetBackdrop"></div>
-
-<!-- 音樂 -->
-<audio id="bgm" src="./bgm.MP3" preload="auto" loop></audio>
+  <!-- 音樂 -->
+  <audio id="bgm" src="./bgm.mp3" preload="auto" loop playsinline></audio>
 
 <script>
 (function(){
-const $=id=>document.getElementById(id);
-const boardEl=$('board'), chartEl=$('chart');
-const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
+  const $=id=>document.getElementById(id);
+  const boardEl=$('board'), chartEl=$('chart');
+  const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
 
-/* ===== 音樂：盡量自動播 + 可手動切換 ===== */
-const bgm=$('bgm'), btnMusic=$('btnMusic');
-let musicOn=true;
-function setMusicUI(){ if(musicOn){btnMusic.textContent='🔇';btnMusic.classList.add('off');} else {btnMusic.textContent='🎵';btnMusic.classList.remove('off');} }
-async function tryPlay(){ if(!musicOn) return; try{ await bgm.play(); }catch(e){} }
-btnMusic.addEventListener('click',()=>{ musicOn=!musicOn; setMusicUI(); if(musicOn) tryPlay(); else bgm.pause(); });
-['pointerdown','touchstart','keydown','visibilitychange'].forEach(ev=>document.addEventListener(ev,()=>tryPlay(),{once:false}));
-window.addEventListener('focus',tryPlay);
-tryPlay();
-
-/* ===== 參數與狀態 ===== */
-let params={levels:+$('levels').value,pRight:+$('pRight').value,batch:+$('batch').value,releaseHz:+$('release').value,fallSpeed:+$('fall').value};
-let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],queueBatches=0,emitClock=0;
-const MAX_ACTIVE=12000,AUTO_GAP=0.85;
-
-/* ===== Canvas HiDPI & 自適應 ===== */
-function sizeCanvasToDisplaySize(canvas, cssW, cssH){
-  const DPR=Math.max(1, window.devicePixelRatio||1);
-  if(cssW!=null) canvas.style.width=cssW+'px';
-  if(cssH!=null) canvas.style.height=cssH+'px';
-  const rect=canvas.getBoundingClientRect();
-  const w=Math.max(2,Math.round(rect.width*DPR)), h=Math.max(2,Math.round(rect.height*DPR));
-  if(canvas.width!==w || canvas.height!==h){ canvas.width=w; canvas.height=h; }
-}
-function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
-function resizeAll(){
-  if(isMobile()){
-    sizeCanvasToDisplaySize(boardEl);
-    sizeCanvasToDisplaySize(chartEl);
-  }else{
-    sizeCanvasToDisplaySize(boardEl, 900, 520);
-    sizeCanvasToDisplaySize(chartEl, 900, 220);
-  }
-  build(); drawBoard(); drawChart();
-}
-window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
-
-/* ===== 幾何（把底部空白拿掉） ===== */
-function build(){
-  const W=boardEl.width, H=boardEl.height, n=params.levels;
-
-  // 留給外框的邊界
-  const m={top:18,bottom:22,left:22,right:22};
-
-  // 給底部刻度的小空間（依畫布自適應）
-  const slotSpace=Math.max(16, Math.min(32, H*0.06));
-
-  const bw=W-m.left-m.right, bh=H-m.top-m.bottom;
-  // 釘子垂直間距：把 slotSpace 扣掉，剩下平均分配給 n+1 段（含頂點到第一排）
-  const ry=(bh - slotSpace)/(n+1);
-  // 釘子水平間距：讓三角形儘量寬，但保留左右邊界
-  const px=Math.min(28, Math.max(12, bw/(n+2)));
-  const dx=px/2;
-
-  const cx=W/2, sy=m.top; // 頂點靠近上緣
-  const floor=sy + n*ry + slotSpace; // 最底部 y（緊貼刻度上方）
-
-  const slots=Array.from({length:n+1},(_,k)=>cx-(n*dx)+k*px);
-  const pegs=[];
-  for(let r=0;r<n;r++){ const y=sy+(r+1)*ry, row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y}); pegs.push(row); }
-
-  geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor,slotSpace};
-  counts=Array(n+1).fill(0); total=0; sumK=0; balls=[]; microQueue=[]; queueBatches=0; emitClock=0;
-  scheduleChart(); updateStats();
-}
-
-/* ===== 畫板 ===== */
-function drawBoard(){
-  const g=geom,ctx=B;
-  ctx.clearRect(0,0,g.W,g.H);
-  ctx.fillStyle='#081029'; ctx.fillRect(0,0,g.W,g.H);
-
-  // 外框
-  ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.lineWidth=1.2;
-  ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
-
-  // 釘子
-  ctx.fillStyle='rgba(148,163,184,.85)';
-  for(const row of g.pegs){ for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI); ctx.fill(); } }
-
-  // 底部槽刻度（縮短一點）
-  ctx.strokeStyle='rgba(56,189,248,.35)';
-  for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-12); ctx.stroke(); }
-
-  // 球
-  ctx.fillStyle='rgba(56,189,248,.92)';
-  for(const b of balls){ const a=b.pts[b.seg], c=b.pts[b.seg+1]||a; const x=a.x+(c.x-a.x)*b.t, y=a.y+(c.y-a.y)*b.t;
-    ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill();
-  }
-}
-
-/* ===== 結果圖 ===== */
-function logF(n){ if(!logF.c){logF.c=[0,0];} const c=logF.c; for(let i=c.length;i<=n;i++) c[i]=c[i-1]+Math.log(i); return c[n]; }
-function pmf(n,k,p){ if(k<0||k>n) return 0; if(p===0) return k===0?1:0; if(p===1) return k===n?1:0; return Math.exp(logF(n)-logF(k)-logF(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p)); }
-let chartTimer=null;
-function scheduleChart(){ if(chartTimer) return; chartTimer=setTimeout(()=>{ chartTimer=null; drawChart(); },80); }
-function drawChart(){
-  const ctx=C, rect=chartEl.getBoundingClientRect();
-  const DPR=Math.max(1,window.devicePixelRatio||1);
-  const W=Math.max(2,Math.round(rect.width*DPR)), H=Math.max(2,Math.round(rect.height*DPR));
-  if(chartEl.width!==W||chartEl.height!==H){ chartEl.width=W; chartEl.height=H; }
-  const pad=36, n=params.levels;
-  const data=counts.slice();
-  const theo=Array.from({length:n+1},(_,k)=> total*pmf(n,k,params.pRight));
-  const ymax=Math.max(1, ...data, ...theo);
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0b1224'; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(148,163,184,.25)';
-  for(let i=0;i<=4;i++){ const y=pad+(H-pad-16)*i/4; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-10,y); ctx.stroke(); }
-  const plotW=W-pad-10, plotH=H-pad-16, barW=plotW/(n+1)*0.8, gap=plotW/(n+1)*0.2;
-  for(let k=0;k<=n;k++){ const x=pad+k*(barW+gap)+gap*0.5, h=(data[k]/ymax)*plotH; ctx.fillStyle='rgba(56,189,248,.75)'; ctx.fillRect(x, pad+plotH-h, barW, h); }
-  ctx.strokeStyle='rgba(248,113,113,1)'; ctx.lineWidth=1.8; ctx.beginPath();
-  for(let k=0;k<=n;k++){ const x=pad+k*(barW+gap)+(gap*0.5+barW/2), y=pad+plotH-(theo[k]/ymax)*plotH; k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
-  ctx.stroke();
-}
-
-/* ===== 模擬核心 ===== */
-function makeBall(){ const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
-  for(let s=1;s<=g.n;s++){ if(Math.random()<params.pRight) r++; pts.push({x:g.cx+(2*r-s)*g.dx,y:g.sy+s*g.ry}); }
-  pts.push({x:g.slots[r],y:g.floor}); return {pts,seg:0,t:0,spd:140*params.fallSpeed,bin:r}; }
-function microStagger(){ return Math.max(.005, Math.min(.03, .3/Math.max(1, params.batch))); }
-function scheduleBatch(){ const want=Math.max(1, Math.floor(params.batch)), s=microStagger(); for(let i=0;i<want;i++) microQueue.push(i*s); }
-
-let last=0;
-function tick(ts){
-  if(!last) last=ts;
-  const dt=Math.min(.05,(ts-last)/1000); last=ts;
-
-  if(!paused){
-    const base=1/Math.max(.1, params.releaseHz);
-    emitClock-=dt;
-    while(emitClock<=0){
-      if(auto) scheduleBatch();           // 自動投放：關 -> 只是停排程，現有球照常落下
-      if(queueBatches>0){ scheduleBatch(); queueBatches--; }
-      emitClock += (auto? base*AUTO_GAP : base);
+  /* ====== 音樂（開始丟球就播；右上可反覆靜音/解除） ====== */
+  const bgm=$('bgm');
+  const btnMusic=$('btnMusic');
+  function setMusicIcon(){ btnMusic.textContent = bgm.muted ? '🔇' : '🎵'; btnMusic.classList.toggle('off', bgm.muted); }
+  function tryPlayMusic(){ if(!bgm.muted && bgm.paused){ bgm.currentTime = bgm.currentTime || 0; bgm.play().catch(()=>{}); } }
+  function pauseMusic(){ if(!bgm.paused) bgm.pause(); }
+  function bindTap(el, fn){
+    if(!el) return;
+    if (window.PointerEvent){
+      el.addEventListener('pointerup', fn, {passive:true});
+    } else {
+      let touched=false;
+      el.addEventListener('touchend', e=>{ touched=true; e.preventDefault(); fn(e); }, {passive:false});
+      el.addEventListener('click', e=>{ if(touched){ touched=false; return; } fn(e); }, {passive:true});
     }
-    for(let i=0;i<microQueue.length;){ microQueue[i]-=dt; if(microQueue[i]<=0){ if(balls.length<MAX_ACTIVE){ balls.push(makeBall()); microQueue.splice(i,1); continue; } } i++; }
-    for(let i=balls.length-1;i>=0;i--){
-      const b=balls[i], a=b.pts[b.seg], c=b.pts[b.seg+1];
-      if(!c){ counts[b.bin]++; total++; sumK+=b.bin; balls.splice(i,1); scheduleChart(); updateStats(); continue; }
-      const L=Math.max(1, Math.hypot(c.x-a.x, c.y-a.y));
-      b.t += (b.spd*params.fallSpeed*dt)/L;
-      if(b.t>=1){ b.seg++; b.t=0; }
+  }
+  bindTap(btnMusic, ()=>{ bgm.muted = !bgm.muted; setMusicIcon(); if(bgm.muted) pauseMusic(); else tryPlayMusic(); });
+  setMusicIcon();
+
+  /* ====== 狀態與參數 ====== */
+  let params={ levels:+$('levels').value, pRight:+$('pRight').value, batch:+$('batch').value, releaseHz:+$('release').value, fallSpeed:+$('fall').value };
+  let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],emitClock=0;
+  const MAX_ACTIVE=12000, AUTO_GAP=0.85;
+
+  /* ====== 工具 ====== */
+  function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
+  function sizeCanvasToDisplaySize(canvas, cssW, cssH){
+    const DPR=Math.max(1,window.devicePixelRatio||1);
+    if(cssW) canvas.style.width=cssW+'px';
+    if(cssH) canvas.style.height=cssH+'px';
+    const rect=canvas.getBoundingClientRect();
+    const w=Math.round(rect.width*DPR), h=Math.round(rect.height*DPR);
+    if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
+  }
+  function resizeAll(){
+    if(isMobile()){ sizeCanvasToDisplaySize(boardEl); sizeCanvasToDisplaySize(chartEl); }
+    else{ sizeCanvasToDisplaySize(boardEl,900,520); sizeCanvasToDisplaySize(chartEl,900,220); }
+    build(); drawBoard(); drawChart();
+  }
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
+
+  /* ====== 幾何（手機不留黑空） ====== */
+  function build(){
+    const W=boardEl.width, H=boardEl.height, n=params.levels;
+    const m={top:20,bottom:isMobile()?10:60,left:20,right:20};
+    const bw=W-m.left-m.right, bh=H-m.top-m.bottom;
+    const px=Math.min(28,Math.max(12,bw/(n+2)));
+    const ry=Math.max(14,Math.min(36,bh/(n+1)));
+    const cx=W/2, sy=m.top+6, dx=px/2;
+    const floor=H-m.bottom-6;
+    const slots=Array.from({length:n+1},(_,k)=>cx-(n*dx)+k*px);
+    const pegs=[];
+    for(let r=0;r<n;r++){ const y=sy+(r+1)*ry, row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y}); pegs.push(row); }
+    geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor};
+    counts=Array(n+1).fill(0); total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0; scheduleChart(); updateStats();
+  }
+
+  /* ====== 繪板 ====== */
+  function drawBoard(){
+    const g=geom,ctx=B;
+    ctx.clearRect(0,0,g.W,g.H);
+    ctx.fillStyle='#081029'; ctx.fillRect(0,0,g.W,g.H);
+    ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
+    ctx.fillStyle='rgba(148,163,184,.85)';
+    for(const row of g.pegs){ for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI); ctx.fill(); } }
+    ctx.strokeStyle='rgba(56,189,248,.35)';
+    for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-12); ctx.stroke(); }
+    ctx.fillStyle='rgba(56,189,248,.92)';
+    for(const b of balls){
+      const a=b.pts[b.seg], c=b.pts[b.seg+1]||a;
+      const x=a.x+(c.x-a.x)*b.t, y=a.y+(c.y-a.y)*b.t;
+      ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill();
     }
   }
 
-  drawBoard();
+  /* ====== 統計圖 ====== */
+  function logF(n){ if(!logF.c){logF.c=[0,0];} const c=logF.c; for(let i=c.length;i<=n;i++) c[i]=c[i-1]+Math.log(i); return c[n]; }
+  function pmf(n,k,p){ if(k<0||k>n) return 0; if(p===0) return k===0?1:0; if(p===1) return k===n?1:0;
+    return Math.exp(logF(n)-logF(k)-logF(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p)); }
+  let chartTimer=null; function scheduleChart(){ if(chartTimer) return; chartTimer=setTimeout(()=>{ chartTimer=null; drawChart(); },80); }
+  function drawChart(){
+    const ctx=C, W=chartEl.width, H=chartEl.height, pad=30, n=params.levels;
+    const data=counts.slice(); const theo=Array.from({length:n+1},(_,k)=> total*pmf(n,k,params.pRight));
+    const ymax=Math.max(1, ...data, ...theo);
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0b1224'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(148,163,184,.25)'; for(let i=0;i<=3;i++){ const y=pad+(H-pad-12)*i/3; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-10,y); ctx.stroke(); }
+    const plotW=W-pad-10, plotH=H-pad-12, barW=plotW/(n+1)*0.78, gap=plotW/(n+1)*0.22;
+    for(let k=0;k<=n;k++){ const x=pad+k*(barW+gap)+gap*0.5, h=(data[k]/ymax)*plotH; ctx.fillStyle='rgba(56,189,248,.75)'; ctx.fillRect(x, pad+plotH-h, barW, h); }
+    ctx.strokeStyle='rgba(248,113,113,1)'; ctx.lineWidth=1.6; ctx.beginPath();
+    for(let k=0;k<=n;k++){ const x=pad+k*(barW+gap)+(gap*0.5+barW/2), y=pad+plotH-(theo[k]/ymax)*plotH; k?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.stroke();
+  }
+
+  /* ====== 模擬核心 ====== */
+  function makeBall(){
+    const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
+    for(let s=1;s<=g.n;s++){ if(Math.random()<params.pRight) r++; pts.push({x:g.cx+(2*r-s)*g.dx,y:g.sy+s*g.ry}); }
+    pts.push({x:g.slots[r],y:g.floor});
+    return {pts,seg:0,t:0,spd:140*params.fallSpeed,bin:r};
+  }
+  function microStagger(){ return Math.max(.005, Math.min(.03, .3/Math.max(1, params.batch))); }
+  function scheduleBatch(){ const want=Math.max(1, Math.floor(params.batch)), s=microStagger(); for(let i=0;i<want;i++) microQueue.push(i*s); }
+
+  /* ====== 迴圈 ====== */
+  let last=0;
+  function tick(ts){
+    if(!last) last=ts; const dt=Math.min(.05,(ts-last)/1000); last=ts;
+    if(!paused){
+      const base=1/Math.max(.1, params.releaseHz);
+      emitClock-=dt;
+      while(emitClock<=0){ if(auto) scheduleBatch(); emitClock += (auto? base*AUTO_GAP : base); }
+
+      for(let i=0;i<microQueue.length;){
+        microQueue[i]-=dt;
+        if(microQueue[i]<=0){
+          if(balls.length<MAX_ACTIVE){
+            const wasEmpty=(balls.length===0 && total===0);
+            balls.push(makeBall());
+            if(wasEmpty) tryPlayMusic(); // 第一次投放嘗試播放
+            microQueue.splice(i,1);
+            continue;
+          }
+        }
+        i++;
+      }
+
+      for(let i=balls.length-1;i>=0;i--){
+        const b=balls[i], a=b.pts[b.seg], c=b.pts[b.seg+1];
+        if(!c){ counts[b.bin]++; total++; sumK+=b.bin; balls.splice(i,1); scheduleChart(); updateStats(); continue; }
+        const L=Math.max(1, Math.hypot(c.x-a.x, c.y-a.y));
+        b.t += (b.spd*params.fallSpeed*dt)/L;
+        if(b.t>=1){ b.seg++; b.t=0; }
+      }
+
+      // 如果自動關閉且沒有排程與空中球，就停音樂
+      if(!auto && microQueue.length===0 && balls.length===0) pauseMusic();
+    }
+    drawBoard();
+    requestAnimationFrame(tick);
+  }
+
+  /* ====== 統計區 ====== */
+  function updateStats(){
+    $('statTotal').textContent=total;
+    $('statMean').textContent= total? (sumK/total).toFixed(3) : '0';
+    $('statMeanTh').textContent=(params.levels*params.pRight).toFixed(3);
+    $('statVarTh').textContent=(params.levels*params.pRight*(1-params.pRight)).toFixed(3);
+  }
+
+  /* ====== 控制同步 ====== */
+  function link(num,range,on){
+    const n=$(num), r=$(range); const set=v=>{ n.value=v; r.value=v; on(+v); };
+    n.addEventListener('input',e=>set(e.target.value),{passive:true});
+    r.addEventListener('input',e=>set(e.target.value),{passive:true});
+  }
+  link('levels','levelsR', v=>{ params.levels=v|0; build(); });
+  link('pRight','pRightR', v=>{ params.pRight=+v; scheduleChart(); updateStats(); });
+  link('batch','batchR', v=>{ params.batch=+v; });
+  link('release','releaseR', v=>{ params.releaseHz=+v; });
+  link('fall','fallR', v=>{ params.fallSpeed=+v; });
+
+  /* ====== 手機抽屜/桌機設定 ====== */
+  const wrap=$('controlsWrap'), fab=$('fabCtrl'), mask=$('sheetBackdrop'), head=$('sheetHead');
+  function openDrawer(open){ if(!isMobile()) return; wrap.classList.toggle('open',open); mask.classList.toggle('show',open); document.body.classList.toggle('drawer-open',open);
+    if(open && !paused){ paused=true; $('btnPause').textContent='▶️ 繼續'; } }
+  function toggleDrawer(){ openDrawer(!wrap.classList.contains('open')); }
+  function closeDrawerIfOpen(){ if(wrap.classList.contains('open')) openDrawer(false); }
+  function refreshDrawerHeader(){
+    if(isMobile()){ head.style.display='flex';
+      head.innerHTML = '<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
+      document.getElementById('btnSheetClose').addEventListener('pointerup',()=>openDrawer(false),{passive:true});
+    }else{ head.style.display='none'; }
+  }
+  bindTap(fab, toggleDrawer);
+  mask.addEventListener('pointerup',()=>openDrawer(false),{passive:true});
+  window.addEventListener('resize',refreshDrawerHeader,{passive:true});
+  refreshDrawerHeader();
+
+  // 桌機設定鈕：捲到控制區
+  bindTap($('btnSettings'), ()=>{
+    wrap.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  /* ====== 主按鈕 ====== */
+  bindTap($('btnDrop'), ()=>{ paused=false; $('btnPause').textContent='⏸️ 暫停'; scheduleBatch(); tryPlayMusic(); closeDrawerIfOpen(); });
+  bindTap($('btnAuto'), (e)=>{
+    auto=!auto;
+    if(!auto){ e.target.textContent='🔁 自動投放：關'; microQueue.length=0; /* 讓現有球跑完 */ }
+    else{ e.target.textContent='🔁 自動投放：開'; paused=false; $('btnPause').textContent='⏸️ 暫停'; emitClock=0; scheduleBatch(); tryPlayMusic(); }
+    closeDrawerIfOpen();
+  });
+  bindTap($('btnPause'), (e)=>{ paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停'; if(!paused){ tryPlayMusic(); closeDrawerIfOpen(); } });
+  bindTap($('btnReset'), ()=>{ auto=false; $('btnAuto').textContent='🔁 自動投放：關'; microQueue.length=0; balls.length=0; pauseMusic(); build(); drawBoard(); drawChart(); setMusicIcon(); });
+
+  /* ====== 啟動 ====== */
+  resizeAll();
   requestAnimationFrame(tick);
-}
-
-/* ===== 統計 ===== */
-function updateStats(){
-  $('statTotal').textContent=total;
-  $('statMean').textContent= total? (sumK/total).toFixed(3) : '0';
-  $('statMeanTh').textContent=(params.levels*params.pRight).toFixed(3);
-  $('statVarTh').textContent=(params.levels*params.pRight*(1-params.pRight)).toFixed(3);
-}
-
-/* ===== 控制同步 ===== */
-function syncPair(num,range,on){
-  const n=$(num), r=$(range);
-  const set=v=>{ n.value=v; r.value=v; on(+v); };
-  n.addEventListener('input',e=>set(e.target.value));
-  r.addEventListener('input',e=>set(e.target.value));
-}
-syncPair('levels','levelsR', v=>{ params.levels=v|0; build(); });
-syncPair('pRight','pRightR', v=>{ params.pRight=+v; scheduleChart(); updateStats(); });
-syncPair('batch','batchR', v=>{ params.batch=+v; });
-syncPair('release','releaseR', v=>{ params.releaseHz=+v; });
-syncPair('fall','fallR', v=>{ params.fallSpeed=+v; });
-
-/* ===== 按鈕 ===== */
-$('btnDrop').addEventListener('click', ()=>{
-  queueBatches++;
-  if(isMobile()) openDrawer(false); // 投放時自動關抽屜
-  tryPlay();
-});
-$('btnAuto').addEventListener('click', e=>{
-  auto=!auto; e.target.textContent=auto?'🔁 自動投放：開':'🔁 自動投放：關';
-  if(isMobile() && auto) openDrawer(false); // 開啟自動：關抽屜
-  tryPlay();
-});
-$('btnPause').addEventListener('click', e=>{ paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停'; if(paused) bgm.pause(); else tryPlay(); });
-$('btnReset').addEventListener('click', ()=>{ auto=false; $('btnAuto').textContent='🔁 自動投放：關'; build(); });
-
-/* ===== 手機抽屜（齒輪） ===== */
-const wrap=$('controlsWrap'), fab=$('fabCtrl'), mask=$('sheetBackdrop'), head=$('sheetHead');
-function openDrawer(open){
-  if(!isMobile()) return;
-  wrap.classList.toggle('open',open);
-  mask.classList.toggle('show',open);
-  document.body.classList.toggle('drawer-open',open);
-  if(open){                 // 打開抽屜：自動暫停（不影響自動投放狀態）
-    if(!paused){ paused=true; $('btnPause').textContent='▶️ 繼續'; }
-    bgm.pause();
-  }
-}
-function refreshDrawerHeader(){
-  if(isMobile()){
-    head.style.display='flex';
-    head.innerHTML = '<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
-    const closeBtn=document.getElementById('btnSheetClose');
-    closeBtn.addEventListener('click',()=>openDrawer(false));
-  }else{
-    head.style.display='none';
-  }
-}
-fab.addEventListener('click',()=>openDrawer(true));
-mask.addEventListener('click',()=>openDrawer(false));
-window.addEventListener('resize',refreshDrawerHeader);
-refreshDrawerHeader();
-
-/* ===== 啟動 ===== */
-resizeAll();
-requestAnimationFrame(tick);
 })();
 </script>
 </body>
