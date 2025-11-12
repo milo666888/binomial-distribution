@@ -12,14 +12,15 @@ background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%)}
 header{padding:10px 12px 4px;text-align:center;position:relative}
 h1{margin:0;font-size:1.6rem;font-weight:800;color:#f0f9ff}
 
-/* 音樂鍵 */
+/* 音樂開關（右上角） */
 #btnMusic{
-  position:absolute;right:14px;top:12px;background:none;border:none;font-size:1.55rem;
-  color:#e5e7eb;cursor:pointer;filter:drop-shadow(0 0 3px rgba(0,0,0,.5));z-index:80
+  position:absolute;right:14px;top:12px;
+  background:none;border:none;font-size:1.55rem;color:#e5e7eb;cursor:pointer;
+  filter:drop-shadow(0 0 3px rgba(0,0,0,.5));z-index:80
 }
 #btnMusic.off{opacity:.6;text-decoration:line-through}
 
-/* 主要版面 */
+/* 主要版面：桌機雙欄 */
 .wrap{max-width:1100px;margin:14px auto 28px;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:12px}
 .panel{background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);
 backdrop-filter:blur(6px);padding:12px}
@@ -88,6 +89,7 @@ filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:50}
   .controls{max-height:60vh;overflow:auto;-webkit-overflow-scrolling:touch}
   .btns{position:sticky;bottom:0;background:rgba(2,6,23,.55);border-top:1px solid rgba(148,163,184,.15);padding-top:8px}
 
+  /* 齒輪 FAB 為了不與 logo 疊在一起，往左退一些 */
   #fabCtrl{
     display:grid;place-items:center;position:fixed;right:84px;bottom:16px;z-index:75;
     width:52px;height:52px;border-radius:999px;border:1px solid rgba(148,163,184,.35);
@@ -102,7 +104,7 @@ filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:50}
 </head>
 <body>
 <header>
-  <h1>🎯 二項分布模擬器（數位高爾爾頓板）</h1>
+  <h1>🎯 二項分布模擬器（數位高爾頓板）</h1>
   <button id="btnMusic" title="背景音樂">🎵</button>
 </header>
 
@@ -148,8 +150,8 @@ filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:50}
 <button id="fabCtrl">⚙️</button>
 <div id="sheetBackdrop"></div>
 
-<!-- 音樂 -->
-<audio id="bgm" src="./bgm.MP3" preload="auto" loop></audio>
+<!-- 音樂（最簡設定，與你提供檔名一致） -->
+<audio id="bgm" src="./bgm.mp3" preload="auto" loop></audio>
 
 <script>
 (function(){
@@ -157,23 +159,19 @@ const $=id=>document.getElementById(id);
 const boardEl=$('board'), chartEl=$('chart');
 const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
 
-/* ===== 音樂：開關＋首顆球觸發 ===== */
+/* ===== 音樂：最穩的手勢播放（投球/開自動/按音樂鍵） ===== */
 const bgm=$('bgm'), btnMusic=$('btnMusic');
-let musicOn=true, firstPlayed=false;
+let musicOn=true, musicStarted=false;
 function setMusicUI(){ btnMusic.textContent=musicOn?'🎵':'🔇'; btnMusic.classList.toggle('off',!musicOn); }
-function tryPlay(){ if(!musicOn) return; bgm.play().catch(()=>{}); }
-btnMusic.addEventListener('click', ()=>{ musicOn=!musicOn; setMusicUI(); if(musicOn) tryPlay(); else bgm.pause(); });
+async function startBgmOnce(){
+  if(!musicOn || musicStarted) return;
+  try{ bgm.currentTime=0; await bgm.play(); musicStarted=true; }catch(e){ musicStarted=false; }
+}
+btnMusic.addEventListener('click', async()=>{ musicOn=!musicOn; setMusicUI(); if(musicOn) await startBgmOnce(); else bgm.pause(); });
 setMusicUI();
-function playOnceOnFirst(){ if(!firstPlayed){ firstPlayed=true; tryPlay(); } }
 
 /* ===== 參數與狀態 ===== */
-let params={
-  levels:+$('levels').value,
-  pRight:+$('pRight').value,
-  batch:+$('batch').value,
-  releaseHz:+$('release').value,
-  fallSpeed:+$('fall').value
-};
+let params={levels:+$('levels').value,pRight:+$('pRight').value,batch:+$('batch').value,releaseHz:+$('release').value,fallSpeed:+$('fall').value};
 let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],queueBatches=0,emitClock=0;
 const MAX_ACTIVE=12000,AUTO_GAP=0.85;
 
@@ -188,8 +186,13 @@ function sizeCanvasToDisplaySize(canvas, cssW, cssH){
 }
 function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
 function resizeAll(){
-  if(isMobile()){ sizeCanvasToDisplaySize(boardEl); sizeCanvasToDisplaySize(chartEl); }
-  else{ sizeCanvasToDisplaySize(boardEl, 900, 520); sizeCanvasToDisplaySize(chartEl, 900, 220); }
+  if(isMobile()){
+    sizeCanvasToDisplaySize(boardEl);
+    sizeCanvasToDisplaySize(chartEl);
+  }else{
+    sizeCanvasToDisplaySize(boardEl, 900, 520);
+    sizeCanvasToDisplaySize(chartEl, 900, 220);
+  }
   build(); drawBoard(); drawChart();
 }
 window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
@@ -224,7 +227,7 @@ function drawBoard(){
   }
 }
 
-/* ===== 統計圖 ===== */
+/* ===== 結果圖 ===== */
 function logF(n){ if(!logF.c){logF.c=[0,0];} const c=logF.c; for(let i=c.length;i<=n;i++) c[i]=c[i-1]+Math.log(i); return c[n]; }
 function pmf(n,k,p){ if(k<0||k>n) return 0; if(p===0) return k===0?1:0; if(p===1) return k===n?1:0; return Math.exp(logF(n)-logF(k)-logF(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p)); }
 let chartTimer=null;
@@ -246,17 +249,11 @@ function drawChart(){
 }
 
 /* ===== 模擬核心 ===== */
-function makeBall(){
-  const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
+function makeBall(){ const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
   for(let s=1;s<=g.n;s++){ if(Math.random()<params.pRight) r++; pts.push({x:g.cx+(2*r-s)*g.dx,y:g.sy+s*g.ry}); }
-  pts.push({x:g.slots[r],y:g.floor});
-  return {pts,seg:0,t:0,spd:140*params.fallSpeed,bin:r};
-}
+  pts.push({x:g.slots[r],y:g.floor}); return {pts,seg:0,t:0,spd:140*params.fallSpeed,bin:r}; }
 function microStagger(){ return Math.max(.005, Math.min(.03, .3/Math.max(1, params.batch))); }
-function scheduleBatch(){
-  const want=Math.max(1, Math.floor(params.batch)), s=microStagger();
-  for(let i=0;i<want;i++) microQueue.push(i*s);
-}
+function scheduleBatch(){ const want=Math.max(1, Math.floor(params.batch)), s=microStagger(); for(let i=0;i<want;i++) microQueue.push(i*s); }
 
 let last=0;
 function tick(ts){
@@ -266,30 +263,15 @@ function tick(ts){
   if(!paused){
     const base=1/Math.max(.1, params.releaseHz);
     emitClock-=dt;
-    while(emitClock<=0){
-      if(auto) scheduleBatch();
-      if(queueBatches>0){ scheduleBatch(); queueBatches--; }
-      emitClock += (auto? base*AUTO_GAP : base);
-    }
-    for(let i=0;i<microQueue.length;){
-      microQueue[i]-=dt;
-      if(microQueue[i]<=0){
-        if(balls.length<MAX_ACTIVE){
-          const wasEmpty=(balls.length===0 && total===0);
-          balls.push(makeBall());
-          if(wasEmpty) playOnceOnFirst(); // 雙保險：真正生成首顆
-          microQueue.splice(i,1);
-          continue;
-        }
-      }
-      i++;
-    }
+    while(emitClock<=0){ if(auto) scheduleBatch(); if(queueBatches>0){ scheduleBatch(); queueBatches--; } emitClock += (auto? base*AUTO_GAP : base); }
+    for(let i=0;i<microQueue.length;){ microQueue[i]-=dt; if(microQueue[i]<=0){ if(balls.length<MAX_ACTIVE){
+      const wasEmpty=(balls.length===0 && total===0);
+      balls.push(makeBall());
+      if(wasEmpty) startBgmOnce(); // 真正生成首顆時再嘗試播一次（保險）
+      microQueue.splice(i,1); continue; } } i++; }
     for(let i=balls.length-1;i>=0;i--){
       const b=balls[i], a=b.pts[b.seg], c=b.pts[b.seg+1];
-      if(!c){
-        counts[b.bin]++; total++; sumK+=b.bin; balls.splice(i,1);
-        scheduleChart(); updateStats(); continue;
-      }
+      if(!c){ counts[b.bin]++; total++; sumK+=b.bin; balls.splice(i,1); scheduleChart(); updateStats(); continue; }
       const L=Math.max(1, Math.hypot(c.x-a.x, c.y-a.y));
       b.t += (b.spd*params.fallSpeed*dt)/L;
       if(b.t>=1){ b.seg++; b.t=0; }
@@ -350,17 +332,15 @@ refreshDrawerHeader();
 
 /* ===== 按鈕 ===== */
 $('btnDrop').addEventListener('click', ()=>{
-  // 手勢當下觸發音樂（最穩），並排入一批
-  playOnceOnFirst();
+  startBgmOnce();   // 手勢當下觸發播放（最穩）
   queueBatches++;
-  // 手機：按下投放自動關抽屜
-  closeDrawerIfOpen();
+  if(isMobile()) openDrawer(false); // 手機：按下投放自動關抽屜
 });
 $('btnAuto').addEventListener('click', e=>{
   auto=!auto; e.target.textContent=auto?'🔁 自動投放：開':'🔁 自動投放：關';
   if(auto){
-    playOnceOnFirst();
-    closeDrawerIfOpen();
+    startBgmOnce();          // 開啟自動時同手勢觸發播放
+    if(isMobile()) openDrawer(false);
   }
 });
 $('btnPause').addEventListener('click', e=>{ paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停'; });
@@ -368,7 +348,7 @@ $('btnReset').addEventListener('click', ()=>{
   auto=false; $('btnAuto').textContent='🔁 自動投放：關'; build();
 });
 
-/* ===== 啟動 ===== */
+/* ===== 啟動：先做一次自適應，再跑動畫 ===== */
 resizeAll();
 requestAnimationFrame(tick);
 })();
