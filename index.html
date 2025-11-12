@@ -278,9 +278,13 @@ function fitMobileHeight(){
     let ry_guess = span0 / 12;
     let pegR = Math.min(3, Math.max(2, ry_guess * 0.22));
 
-    const sy = (m.top + 6) + pegR;
-    const floor = (H - m.bottom - 6) - pegR;
-    const span = Math.max(20, floor - sy);
+   // 這兩行替換原本的：
+const sy    = mobile ? (m.top + 6 + pegR) : (m.top + 6);
+const floor = mobile ? (H - m.bottom - 6 - pegR) : (H - m.bottom - 6);
+
+// 接著再算：
+const span = Math.max(20, floor - sy);
+
 
     let ry;
     if (mobile) {
@@ -515,4 +519,5 @@ function fitMobileHeight(){
 </script>
 </body>
 </html>
+
 
