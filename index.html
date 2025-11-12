@@ -248,54 +248,68 @@ h1{
 
   /* ===== 幾何：以 12 為基準；n>12 依 12/n 比例壓縮行距 ===== */
     /* ===== 幾何：以 12 為基準；手機且 n=12 時塞滿高度 ===== */
-  function build(){
-    const W=boardEl.width, H=boardEl.height, n=params.levels;
-    const m = { top:20, bottom:isMobile()?10:18, left:14, right:14 };
+  /* ===== 幾何：手機固定板高；n=12 吃滿，高於 12 只縮間距 ===== */
+function build(){
+  const W=boardEl.width, H=boardEl.height, n=params.levels;
+  const m = { top:20, bottom:isMobile()?10:18, left:14, right:14 };
 
-    const bw = Math.max(10, W - m.left - m.right);
-    const px = Math.min(30, Math.max(10, bw/(n+2)));
-    const dx = px/2;
+  const bw = Math.max(10, W - m.left - m.right);
+  const px = Math.min(30, Math.max(10, bw/(n+2)));
+  const dx = px/2;
 
-    const cx = W/2, sy = m.top + 6;
-    const floor = H - m.bottom - 6;
+  const cx = W/2, sy = m.top + 6;
+  const floor = H - m.bottom - 6;
 
-    const targetRef = 12; // 以 12 為標準
-    const useTight12 = isMobile() && n === 12; //【新增】手機 + 12 階層 → 塞滿
+  const targetRef = 12;                   // 電腦版基準
+  const mobileTight = isMobile();         // 只影響手機：板面高度固定
 
-    // 一般情況維持原本做法；手機且 12 階層時，直接把全部高度平均分成 12 段
-    const baseClear = useTight12 ? 0 : 10; //【調整】12 階層不再多留安全距
-    const avail = Math.max(40, floor - sy - baseClear);
+  // 先以 pegR ≈2.5 預估一次，之後再用真正 pegR 回填一次，避免被底線「頂回去」
+  const guessPeg = 2.5;
+  const spanBase = (floor - sy - (mobileTight ? 2 : 10)); // 手機不留額外安全距
+  let ry0;
 
-    let ry;
-    if (useTight12) {
-      ry = Math.max(6, Math.min(36, avail / n)); //【重點】剛好分成 12 份
-    } else {
-      let baseRy = avail / targetRef;
-      ry = baseRy * Math.min(1, targetRef/Math.max(1,n)); // n>12 => 縮 ry
-      ry = Math.max(6, Math.min(36, ry));
-    }
+  if (mobileTight) {
+    // 手機：板面固定。n=12 → 吃滿；n>12 → 按 12/n 等比縮 ry
+    const ryBase0 = Math.max(6, Math.min(36, (floor - sy - guessPeg - 2) / targetRef));
+    ry0 = (n <= targetRef) ? ryBase0 : ryBase0 * (targetRef / Math.max(1,n));
+  } else {
+    // 桌機：維持原本邏輯（以 12 為基準，n>12 縮 ry）
+    let baseRy = Math.max(6, Math.min(36, spanBase / targetRef));
+    ry0 = baseRy * Math.min(1, targetRef/Math.max(1,n));
+  }
 
-    // 釘子半徑隨 ry 縮放（維持原邏輯）
-    let pegR = Math.min(3, Math.max(2, ry * 0.22));
-
-    // 再保守檢查不要穿出底線
+  // 用 ry0 算真正 pegR，再回填一次，確保球不會穿出底線，同時 n=12 時吃滿
+  let pegR = Math.min(3, Math.max(2, ry0 * 0.22));
+  let ry;
+  if (mobileTight) {
+    const ryBase = Math.max(6, Math.min(36, (floor - sy - pegR - 2) / targetRef));
+    ry = (n <= targetRef) ? ryBase : ryBase * (targetRef / Math.max(1,n));
+    // 手機模式：不要再用 maxRy 把它壓小，避免 12 階層吃不滿
+  } else {
+    ry = ry0;
+    // 桌機保守檢查
     const maxRy = (floor - (pegR + 6) - sy) / Math.max(1, n);
     if (ry > maxRy) ry = Math.max(6, maxRy);
-
-    const slots = Array.from({length:n+1},(_,k)=> cx-(n*dx)+k*px);
-    const pegs=[];
-    for(let r=0;r<n;r++){
-      const y = sy + (r+1)*ry;
-      const row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y});
-      pegs.push(row);
-    }
-
-    geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor,pegR};
-
-    counts=Array(n+1).fill(0);
-    total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0;
-    scheduleChart(); updateStats();
   }
+
+  // 釘子半徑（依最終 ry）
+  pegR = Math.min(3, Math.max(2, ry * 0.22));
+
+  const slots = Array.from({length:n+1},(_,k)=> cx-(n*dx)+k*px);
+  const pegs=[];
+  for(let r=0;r<n;r++){
+    const y = sy + (r+1)*ry;
+    const row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y});
+    pegs.push(row);
+  }
+
+  geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor,pegR};
+
+  counts=Array(n+1).fill(0);
+  total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0;
+  scheduleChart(); updateStats();
+}
+
 
 
   /* ===== 繪板：槽線固定 10px，嚴守框內 ===== */
