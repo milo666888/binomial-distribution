@@ -227,13 +227,25 @@ h1{
   /* 手機：精準固定板高 ≈ 視窗 50%，chart 25% */
 function fitMobileHeight(){
   if(!isMobile()) return;
+  // 手機視窗高度
   const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 600;
-  boardEl.style.height = Math.round(vh*0.40) + 'px';  // 彈珠台40%
-  chartEl.style.height  = Math.round(vh*0.24) + 'px'; // 圖表24%，保持原比例
+
+  // ✅ 彈珠台縮小為視窗高度的 0.40（即40%）
+  const boardH = Math.round(vh * 0.40);
+  const chartH = Math.round(vh * 0.24);
+
+  boardEl.style.height = boardH + 'px';
+  chartEl.style.height = chartH + 'px';
+
+  // ✅ 同步讓 canvas 實際尺寸跟著縮
   sizeCanvasToDisplaySize(boardEl);
   sizeCanvasToDisplaySize(chartEl);
-}
 
+  // ✅ 重建一次幾何，讓釘子間距依照新的 40% 高度重算
+  build();
+  drawBoard();
+  drawChart();
+}
 
   function resizeAll(){
     if(isMobile()) fitMobileHeight();
