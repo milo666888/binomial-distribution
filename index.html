@@ -10,15 +10,15 @@
 body{margin:0;font-family:system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Arial,sans-serif;color:var(--text);
 background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%)}
 
-/* Header：桌機顯示設定+音樂 */
+/* Header：只留音樂按鈕 */
 header{padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between}
 h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
 .tools{display:flex;align-items:center;gap:10px}
-.toolbtn{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid rgba(148,163,184,.25);
+#btnMusic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid rgba(148,163,184,.25);
   background:rgba(2,6,23,.5);color:#e5e7eb;font-size:1.05rem;cursor:pointer}
 #btnMusic.off{opacity:.65;text-decoration:line-through}
 
-/* 右下 Logo（桌機＋手機都固定） */
+/* 右下公司 Logo（桌機＋手機固定） */
 .logo-fixed{position:fixed;right:16px;bottom:16px;width:90px;height:auto;opacity:.95;
   filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:1900}
 
@@ -57,32 +57,22 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
 .btn.warn{background:linear-gradient(180deg,rgba(248,113,113,.22),rgba(248,113,113,.10));
   border-color:rgba(248,113,113,.45);color:#ffecec}
 
-/* 手機：單欄 + 下抽屜；不留中間空洞 */
-#fabCtrl{display:none}
+/* 手機：單欄＋上貼資訊；Logo 等比例縮小且抬高避免擋按鈕 */
 #sheetBackdrop{display:none}
 @media (max-width:980px),(hover:none) and (pointer:coarse){
   .wrap{grid-template-columns:1fr}
   .panel{padding:8px}
+  .canvas-wrap{padding:6px}           /* 貼近板面 */
+  .legend{margin-top:4px}             /* 更貼近 */
+  .stats{margin-top:4px}              /* 更貼近 */
   #board{width:100%;height:48svh;height:48dvh}
   #chart{width:100%;height:24svh;height:24dvh}
 
-  .controls-panel{position:fixed;left:0;right:0;bottom:0;z-index:1700;max-height:85svh;
-    transform:translateY(105%);transition:transform .25s ease;border-radius:16px 16px 0 0;backdrop-filter:blur(8px);
-    overflow:hidden;padding-top:6px}
-  .controls-panel.open{transform:translateY(0)}
-  .sheet-head{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 2px 12px}
-  .sheet-title{font-weight:800}
-  .sheet-close{appearance:none;border:1px solid rgba(148,163,184,.28);background:rgba(148,163,184,.12);color:#e5e7eb;border-radius:10px;padding:6px 10px;font-weight:800}
+  /* 補：Logo 與按鈕不打架、大小一致（以 44px 視為與按鈕一致） */
+  .logo-fixed{right:16px;bottom:84px;width:44px} /* 提高，避免蓋到底部操作鍵 */
+
   .controls{max-height:60svh;overflow:auto;-webkit-overflow-scrolling:touch}
   .btns{position:sticky;bottom:0;background:rgba(2,6,23,.55);border-top:1px solid rgba(148,163,184,.15);padding-top:8px}
-
-  #fabCtrl{display:grid;place-items:center;position:fixed;right:84px;bottom:16px;z-index:1800;
-    width:52px;height:52px;border-radius:999px;border:1px solid rgba(148,163,184,.35);
-    background:radial-gradient(120% 120% at 70% 20%,rgba(56,189,248,.35),rgba(31,41,55,.9));
-    color:#e6f7ff;font-size:1.2rem;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,.45)}
-  #sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:1650}
-  #sheetBackdrop.show{opacity:1;pointer-events:auto}
-  body.drawer-open{overflow:hidden}
 }
 </style>
 </head>
@@ -90,12 +80,11 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   <header>
     <h1>🎯 二項分布模擬器（數位高爾頓板）</h1>
     <div class="tools">
-      <button id="btnSettings" class="toolbtn" title="設定">⚙️</button>
-      <button id="btnMusic"   class="toolbtn" title="背景音樂">🎵</button>
+      <button id="btnMusic" title="背景音樂">🎵</button>
     </div>
   </header>
 
-  <!-- 右下公司 Logo -->
+  <!-- 右下公司 Logo（桌機 & 手機固定；手機已縮小且抬高） -->
   <img class="logo-fixed" src="./company-logo.png" alt="Company Logo"/>
 
   <div class="wrap">
@@ -116,7 +105,6 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
 
     <!-- 右：控制（桌機）／抽屜（手機） -->
     <div class="panel controls-panel" id="controlsWrap">
-      <div class="sheet-head" id="sheetHead" style="display:none"></div>
       <div class="controls">
         <div class="control"><label>階層數（3~24）</label><input id="levels" type="number" min="3" max="24" value="12"/><input id="levelsR" class="range" type="range" min="3" max="24" value="12"/></div>
         <div class="control"><label>向右機率 p（0~1）</label><input id="pRight" type="number" min="0" max="1" step="0.01" value="0.5"/><input id="pRightR" class="range" type="range" min="0" max="1" step="0.01" value="0.5"/></div>
@@ -133,10 +121,6 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     </div>
   </div>
 
-  <!-- 手機：齒輪與遮罩 -->
-  <button id="fabCtrl" title="設定">⚙️</button>
-  <div id="sheetBackdrop"></div>
-
   <!-- 音樂 -->
   <audio id="bgm" src="./bgm.mp3" preload="auto" loop playsinline></audio>
 
@@ -146,7 +130,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   const boardEl=$('board'), chartEl=$('chart');
   const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
 
-  /* ====== 音樂（開始丟球就播；右上可反覆靜音/解除） ====== */
+  /* ===== 音樂（已確認OK：不要改這段） ===== */
   const bgm=$('bgm');
   const btnMusic=$('btnMusic');
   function setMusicIcon(){ btnMusic.textContent = bgm.muted ? '🔇' : '🎵'; btnMusic.classList.toggle('off', bgm.muted); }
@@ -165,12 +149,12 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   bindTap(btnMusic, ()=>{ bgm.muted = !bgm.muted; setMusicIcon(); if(bgm.muted) pauseMusic(); else tryPlayMusic(); });
   setMusicIcon();
 
-  /* ====== 狀態與參數 ====== */
+  /* ===== 參數與狀態 ===== */
   let params={ levels:+$('levels').value, pRight:+$('pRight').value, batch:+$('batch').value, releaseHz:+$('release').value, fallSpeed:+$('fall').value };
   let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],emitClock=0;
   const MAX_ACTIVE=12000, AUTO_GAP=0.85;
 
-  /* ====== 工具 ====== */
+  /* ===== 工具 ===== */
   function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
   function sizeCanvasToDisplaySize(canvas, cssW, cssH){
     const DPR=Math.max(1,window.devicePixelRatio||1);
@@ -187,32 +171,38 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   }
   window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
 
-  /* ====== 幾何（手機不留黑空） ====== */
+  /* ===== 幾何（手機不留黑空；底線補回） ===== */
   function build(){
     const W=boardEl.width, H=boardEl.height, n=params.levels;
-    const m={top:20,bottom:isMobile()?10:60,left:20,right:20};
+    const m={top:20,bottom:isMobile()?10:60,left:20,right:20};        // 手機 bottom 仍保留，但偏小
     const bw=W-m.left-m.right, bh=H-m.top-m.bottom;
     const px=Math.min(28,Math.max(12,bw/(n+2)));
     const ry=Math.max(14,Math.min(36,bh/(n+1)));
     const cx=W/2, sy=m.top+6, dx=px/2;
     const floor=H-m.bottom-6;
     const slots=Array.from({length:n+1},(_,k)=>cx-(n*dx)+k*px);
-    const pegs=[];
-    for(let r=0;r<n;r++){ const y=sy+(r+1)*ry, row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y}); pegs.push(row); }
+    const pegs=[]; for(let r=0;r<n;r++){ const y=sy+(r+1)*ry, row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y}); pegs.push(row); }
     geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor};
     counts=Array(n+1).fill(0); total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0; scheduleChart(); updateStats();
   }
 
-  /* ====== 繪板 ====== */
+  /* ===== 繪板 ===== */
   function drawBoard(){
     const g=geom,ctx=B;
     ctx.clearRect(0,0,g.W,g.H);
     ctx.fillStyle='#081029'; ctx.fillRect(0,0,g.W,g.H);
     ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
+
+    /* 釘子 */
     ctx.fillStyle='rgba(148,163,184,.85)';
     for(const row of g.pegs){ for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI); ctx.fill(); } }
+
+    /* 槽線 + 底線（手機最下方直線補回） */
     ctx.strokeStyle='rgba(56,189,248,.35)';
     for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-12); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(g.m.left, g.floor+0.5); ctx.lineTo(g.W-g.m.right, g.floor+0.5); ctx.stroke();
+
+    /* 球 */
     ctx.fillStyle='rgba(56,189,248,.92)';
     for(const b of balls){
       const a=b.pts[b.seg], c=b.pts[b.seg+1]||a;
@@ -221,7 +211,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     }
   }
 
-  /* ====== 統計圖 ====== */
+  /* ===== 統計圖 ===== */
   function logF(n){ if(!logF.c){logF.c=[0,0];} const c=logF.c; for(let i=c.length;i<=n;i++) c[i]=c[i-1]+Math.log(i); return c[n]; }
   function pmf(n,k,p){ if(k<0||k>n) return 0; if(p===0) return k===0?1:0; if(p===1) return k===n?1:0;
     return Math.exp(logF(n)-logF(k)-logF(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p)); }
@@ -239,7 +229,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     ctx.stroke();
   }
 
-  /* ====== 模擬核心 ====== */
+  /* ===== 模擬核心 ===== */
   function makeBall(){
     const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
     for(let s=1;s<=g.n;s++){ if(Math.random()<params.pRight) r++; pts.push({x:g.cx+(2*r-s)*g.dx,y:g.sy+s*g.ry}); }
@@ -249,7 +239,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   function microStagger(){ return Math.max(.005, Math.min(.03, .3/Math.max(1, params.batch))); }
   function scheduleBatch(){ const want=Math.max(1, Math.floor(params.batch)), s=microStagger(); for(let i=0;i<want;i++) microQueue.push(i*s); }
 
-  /* ====== 迴圈 ====== */
+  /* ===== 迴圈 ===== */
   let last=0;
   function tick(ts){
     if(!last) last=ts; const dt=Math.min(.05,(ts-last)/1000); last=ts;
@@ -264,7 +254,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
           if(balls.length<MAX_ACTIVE){
             const wasEmpty=(balls.length===0 && total===0);
             balls.push(makeBall());
-            if(wasEmpty) tryPlayMusic(); // 第一次投放嘗試播放
+            if(wasEmpty) tryPlayMusic();       // 第一次投放嘗試播放
             microQueue.splice(i,1);
             continue;
           }
@@ -280,14 +270,14 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
         if(b.t>=1){ b.seg++; b.t=0; }
       }
 
-      // 如果自動關閉且沒有排程與空中球，就停音樂
+      // 自動關閉且無排程、無空中球 → 自然停（不會強制暫停）
       if(!auto && microQueue.length===0 && balls.length===0) pauseMusic();
     }
     drawBoard();
     requestAnimationFrame(tick);
   }
 
-  /* ====== 統計區 ====== */
+  /* ===== 統計區 ===== */
   function updateStats(){
     $('statTotal').textContent=total;
     $('statMean').textContent= total? (sumK/total).toFixed(3) : '0';
@@ -295,7 +285,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     $('statVarTh').textContent=(params.levels*params.pRight*(1-params.pRight)).toFixed(3);
   }
 
-  /* ====== 控制同步 ====== */
+  /* ===== 控制同步 ===== */
   function link(num,range,on){
     const n=$(num), r=$(range); const set=v=>{ n.value=v; r.value=v; on(+v); };
     n.addEventListener('input',e=>set(e.target.value),{passive:true});
@@ -307,40 +297,17 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   link('release','releaseR', v=>{ params.releaseHz=+v; });
   link('fall','fallR', v=>{ params.fallSpeed=+v; });
 
-  /* ====== 手機抽屜/桌機設定 ====== */
-  const wrap=$('controlsWrap'), fab=$('fabCtrl'), mask=$('sheetBackdrop'), head=$('sheetHead');
-  function openDrawer(open){ if(!isMobile()) return; wrap.classList.toggle('open',open); mask.classList.toggle('show',open); document.body.classList.toggle('drawer-open',open);
-    if(open && !paused){ paused=true; $('btnPause').textContent='▶️ 繼續'; } }
-  function toggleDrawer(){ openDrawer(!wrap.classList.contains('open')); }
-  function closeDrawerIfOpen(){ if(wrap.classList.contains('open')) openDrawer(false); }
-  function refreshDrawerHeader(){
-    if(isMobile()){ head.style.display='flex';
-      head.innerHTML = '<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
-      document.getElementById('btnSheetClose').addEventListener('pointerup',()=>openDrawer(false),{passive:true});
-    }else{ head.style.display='none'; }
-  }
-  bindTap(fab, toggleDrawer);
-  mask.addEventListener('pointerup',()=>openDrawer(false),{passive:true});
-  window.addEventListener('resize',refreshDrawerHeader,{passive:true});
-  refreshDrawerHeader();
-
-  // 桌機設定鈕：捲到控制區
-  bindTap($('btnSettings'), ()=>{
-    wrap.scrollIntoView({behavior:'smooth', block:'start'});
-  });
-
-  /* ====== 主按鈕 ====== */
-  bindTap($('btnDrop'), ()=>{ paused=false; $('btnPause').textContent='⏸️ 暫停'; scheduleBatch(); tryPlayMusic(); closeDrawerIfOpen(); });
+  /* ===== 主按鈕 ===== */
+  bindTap($('btnDrop'), ()=>{ paused=false; $('btnPause').textContent='⏸️ 暫停'; scheduleBatch(); tryPlayMusic(); });
   bindTap($('btnAuto'), (e)=>{
     auto=!auto;
     if(!auto){ e.target.textContent='🔁 自動投放：關'; microQueue.length=0; /* 讓現有球跑完 */ }
     else{ e.target.textContent='🔁 自動投放：開'; paused=false; $('btnPause').textContent='⏸️ 暫停'; emitClock=0; scheduleBatch(); tryPlayMusic(); }
-    closeDrawerIfOpen();
   });
-  bindTap($('btnPause'), (e)=>{ paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停'; if(!paused){ tryPlayMusic(); closeDrawerIfOpen(); } });
+  bindTap($('btnPause'), (e)=>{ paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停'; if(!paused) tryPlayMusic(); });
   bindTap($('btnReset'), ()=>{ auto=false; $('btnAuto').textContent='🔁 自動投放：關'; microQueue.length=0; balls.length=0; pauseMusic(); build(); drawBoard(); drawChart(); setMusicIcon(); });
 
-  /* ====== 啟動 ====== */
+  /* ===== 啟動 ===== */
   resizeAll();
   requestAnimationFrame(tick);
 })();
