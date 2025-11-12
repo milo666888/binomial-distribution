@@ -97,7 +97,7 @@ h1{
   .panel{padding:8px}
   .canvas-wrap{padding:6px 6px 4px 6px}
   .legend{margin-top:4px}.stats{margin-top:4px}
-  #board{width:100%;height:48svh;height:48dvh}  /* 先用 svh，JS 再精準壓到 50% */
+  #board{width:100%;height:48svh;height:48dvh}
   #chart{width:100%;height:24svh;height:24dvh}
 
   /* 抽屜 */
@@ -224,19 +224,18 @@ h1{
     if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
   }
 
-  /* 手機：精準固定板高 ≈ 視窗 50%（以 12 階層為基準），chart 25% */
+  /* 手機：精準固定板高 ≈ 視窗 50%，chart 25% */
   function fitMobileHeight(){
     if(!isMobile()) return;
     const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 600;
     boardEl.style.height = Math.round(vh*0.50) + 'px';
     chartEl.style.height  = Math.round(vh*0.25) + 'px';
-// 【新增】高度剛設完立刻同步 canvas 實體尺寸
     sizeCanvasToDisplaySize(boardEl);
     sizeCanvasToDisplaySize(chartEl);
   }
 
   function resizeAll(){
-    if(isMobile()) fitMobileHeight();   // 只動手機高度
+    if(isMobile()) fitMobileHeight();
     sizeCanvasToDisplaySize(boardEl);
     sizeCanvasToDisplaySize(chartEl);
     build(); drawBoard(); drawChart();
@@ -246,81 +245,65 @@ h1{
     window.visualViewport.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); }, {passive:true});
   }
 
-  /* ===== 幾何：以 12 為基準；n>12 依 12/n 比例壓縮行距 ===== */
-    /* ===== 幾何：以 12 為基準；手機且 n=12 時塞滿高度 ===== */
-  /* ===== 幾何：手機固定板高；n=12 吃滿，高於 12 只縮間距 ===== */
-/* ===== 幾何：手機固定板高；12階層吃滿，高於12只縮間距 ===== */
-function build(){
-  const W = boardEl.width, H = boardEl.height, n = params.levels;
-  const m = { top:20, bottom:isMobile()?10:18, left:14, right:14 };
+  /* ===== 幾何（★改動：手機 n=12 吃滿；>12 只縮間距） ===== */
+  function build(){
+    const W = boardEl.width, H = boardEl.height, n = params.levels;
+    const mobile = isMobile();
 
-  const bw = Math.max(10, W - m.left - m.right);
-  const px = Math.min(30, Math.max(10, bw/(n+2)));
-  const dx = px / 2;
+    const m = { top:20, bottom: mobile ? 10 : 18, left:14, right:14 };
 
-  const cx = W/2, sy = m.top + 6;
-  const floor = H - m.bottom - 6;
+    const bw = Math.max(10, W - m.left - m.right);
+    const px = Math.min(30, Math.max(10, bw/(n+2)));
+    const dx = px / 2;
 
-  const mobile = isMobile();
-  const targetRef = 12;
+    const cx = W/2;
 
-  // ===== ry 計算 =====
-  const pegGuess = 2.5;
-  const spanGuess = (floor - pegGuess) - sy; // 可用高度
-  let ry;
+    // 先粗估 ry -> 得到 pegR -> 用 pegR 重新決定 sy/floor -> 回填 ry
+    const sy0 = m.top + 6;
+    const floor0 = H - m.bottom - 6;
+    const span0 = Math.max(20, floor0 - sy0);
+    let ry_guess = span0 / 12;
+    let pegR = Math.min(3, Math.max(2, ry_guess * 0.22));
 
-  if (mobile) {
-    if (n === 12) {
-      // 手機12階層：剛好吃滿整個可用高度
-      ry = spanGuess / n;
-    } else if (n > 12) {
-      // 手機>12階層：以12為基準，按12/n縮小間距
-      ry = (spanGuess / 12) * (12 / n);
+    const sy = (m.top + 6) + pegR;
+    const floor = (H - m.bottom - 6) - pegR;
+    const span = Math.max(20, floor - sy);
+
+    let ry;
+    if (mobile) {
+      if (n === 12) {
+        ry = span / n;              // 滿版
+      } else {
+        const ry12 = span / 12;     // 以 12 滿版為基準
+        ry = ry12 * (12 / n);       // 只縮間距
+      }
     } else {
-      // 手機<12階層：等比放大，保持整體比例
-      ry = (spanGuess / 12) * (12 / n);
+      const targetRef = 12, baseClear = 10;
+      const avail = Math.max(40, (H - (m.top + m.bottom) - baseClear));
+      let baseRy = avail / targetRef;
+      ry = baseRy * Math.min(1, targetRef/Math.max(1,n));
+      ry = Math.max(6, Math.min(36, ry));
     }
-  } else {
-    // 桌機：維持原邏輯
-    const baseClear = 10;
-    const avail = Math.max(40, floor - sy - baseClear);
-    let baseRy = avail / targetRef;
-    ry = baseRy * Math.min(1, targetRef / Math.max(1, n));
-    ry = Math.max(6, Math.min(36, ry));
+
+    pegR = Math.min(3, Math.max(2, ry * 0.22));
+
+    const slots = Array.from({length:n+1}, (_,k) => cx - (n*dx) + k*px);
+    const pegs = [];
+    for (let r=0; r<n; r++){
+      const y = sy + (r+1)*ry;      // r=n-1 時：sy + n*ry = floor（手機 n=12）
+      const row = [];
+      for (let j=0; j<=r; j++) row.push({ x: cx - (r*dx) + j*px, y });
+      pegs.push(row);
+    }
+
+    geom = { W, H, m, n, cx, sy, ry, dx, px, slots, pegs, floor, pegR };
+
+    counts = Array(n+1).fill(0);
+    total = 0; sumK = 0; balls = []; microQueue = []; emitClock = 0;
+    scheduleChart(); updateStats();
   }
 
-  // 算真正釘子半徑
-  let pegR = Math.min(3, Math.max(2, ry * 0.22));
-
-  // 手機再精準回填一次，確保底線貼合
-  if (mobile) {
-    const spanExact = (floor - pegR) - sy;
-    if (n === 12) ry = spanExact / n;
-    else ry = (spanExact / 12) * (12 / n);
-  }
-
-  // 建立釘子位置
-  const slots = Array.from({length:n+1}, (_,k)=> cx - (n*dx) + k*px);
-  const pegs = [];
-  for(let r=0; r<n; r++){
-    const y = sy + (r+1)*ry;
-    const row = [];
-    for(let j=0; j<=r; j++) row.push({x:cx - (r*dx) + j*px, y});
-    pegs.push(row);
-  }
-
-  geom = {W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor,pegR};
-
-  // 重設狀態
-  counts = Array(n+1).fill(0);
-  total = 0; sumK = 0; balls = []; microQueue = []; emitClock = 0;
-  scheduleChart(); updateStats();
-}
-
-
-
-
-  /* ===== 繪板：槽線固定 10px，嚴守框內 ===== */
+  /* ===== 繪板 ===== */
   function drawBoard(){
     const g=geom,ctx=B;
     ctx.clearRect(0,0,g.W,g.H);
@@ -422,7 +405,6 @@ function build(){
         if(b.t>=1){ b.seg++; b.t=0; }
       }
 
-      // 關自動：不新增，讓佇列與空中球跑完；全清後自動暫停音樂
       if(!auto && microQueue.length===0 && balls.length===0) pauseMusic();
     }
     drawBoard();
@@ -443,14 +425,13 @@ function build(){
     n.addEventListener('input',e=>set(e.target.value),{passive:true});
     r.addEventListener('input',e=>set(e.target.value),{passive:true});
   }
-  // 手機需要重新壓行距 → 用 resizeAll()
   link('levels','levelsR', v=>{ params.levels=v|0; resizeAll(); });
   link('pRight','pRightR', v=>{ params.pRight=+v; scheduleChart(); updateStats(); });
   link('batch','batchR', v=>{ params.batch=+v; });
   link('release','releaseR', v=>{ params.releaseHz=+v; });
   link('fall','fallR', v=>{ params.fallSpeed=+v; });
 
-  /* ===== 手機抽屜（不影響桌機）===== */
+  /* ===== 手機抽屜（★改動：關閉時一律恢復運作）===== */
   const wrap=$('controlsWrap'), mask=$('sheetBackdrop'), head=$('sheetHead');
   function openDrawer(open){
     if(!isMobile()) return;
@@ -460,21 +441,26 @@ function build(){
     head.style.display = open ? 'flex' : 'none';
     if(open){
       head.innerHTML='<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
-      document.getElementById('btnSheetClose').addEventListener('pointerup',()=>openDrawer(false),{passive:true});
-      // 抽屜開啟時先暫停，但不改 userPaused 狀態
+      // ★關閉按鈕：改成走 closeDrawerIfOpen（一律恢復運作）
+      document.getElementById('btnSheetClose').addEventListener('pointerup',()=>closeDrawerIfOpen(),{passive:true});
+      // 打開抽屜時先暫停（不改音樂），標記不變
       if(!paused){ paused=true; $('btnPause').textContent='▶️ 繼續'; }
     }
   }
   function closeDrawerIfOpen(){
     if(isMobile() && wrap.classList.contains('open')){
       openDrawer(false);
-      // 若使用者「沒有」主動按過暫停，就自動恢復播放，避免關自動時卡住
-      if(!userPaused){ paused=false; $('btnPause').textContent='⏸️ 暫停'; }
+      // ★關掉抽屜一律恢復動作與音樂
+      userPaused=false;
+      paused=false;
+      $('btnPause').textContent='⏸️ 暫停';
+      tryPlayMusic();
     }
   }
   const btnOpenDrawer=document.getElementById('btnOpenDrawer');
   if(btnOpenDrawer){ bindTap(btnOpenDrawer, ()=>openDrawer(true)); }
-  mask.addEventListener('pointerup', ()=>openDrawer(false), {passive:true});
+  // ★遮罩點擊也走 closeDrawerIfOpen（恢復運作）
+  mask.addEventListener('pointerup', ()=>closeDrawerIfOpen(), {passive:true});
 
   /* ===== 主按鈕 ===== */
   bindTap($('btnDrop'), ()=>{ paused=false; userPaused=false; $('btnPause').textContent='⏸️ 暫停'; scheduleBatch(); tryPlayMusic(); closeDrawerIfOpen(); });
@@ -483,10 +469,7 @@ function build(){
     auto=!auto;
     if(!auto){
       e.target.textContent='🔁 自動投放：關';
-      // 關自動但不清佇列，且若非使用者暫停就保持播放，讓球全部跑完
       if(!userPaused){ paused=false; $('btnPause').textContent='⏸️ 暫停'; }
-      // 若你偏好「關自動時補投一批」可解開下一行：
-      // scheduleBatch();
     }else{
       e.target.textContent='🔁 自動投放：開';
       paused=false; userPaused=false; $('btnPause').textContent='⏸️ 暫停';
@@ -513,7 +496,7 @@ function build(){
   /* ===== 啟動 ===== */
   boardEl.style.width='100%'; chartEl.style.width='100%';
   boardEl.style.height='46vh'; chartEl.style.height='22vh';
-  if(isMobile()){ fitMobileHeight(); } // 手機先壓成 50% + 25%
+  if(isMobile()){ fitMobileHeight(); }
   resizeAll(); requestAnimationFrame(tick);
 })();
 </script>
