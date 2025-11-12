@@ -5,17 +5,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>🎯 二項分布模擬器（數位高爾頓板）</title>
 <style>
-:root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--accent:#38bdf8;--accent2:#f87171;--text:#e5e7eb;--muted:#94a3b8;}
+:root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--accent:#38bdf8;--accent2:#f87171;--text:#e5e7eb;--muted:#94a3b8}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:linear-gradient(180deg,#0b1025 0%,#0f172a 60%,#0b1025 100%)}
+body{margin:0;font-family:system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%)}
 header{padding:16px 12px;text-align:center}
-header h1{margin:0;font-size:1.7rem;font-weight:800;color:#f0f9ff}
+h1{margin:0;font-size:1.65rem;font-weight:800;color:#f0f9ff}
 
-.wrap{max-width:1100px;margin:14px auto 28px;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:12px}
-.panel{background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px);padding:12px}
-.canvas-wrap{position:relative;padding:10px;border-radius:12px;background:radial-gradient(1000px 360px at 50% -40%,rgba(56,189,248,.15),transparent 60%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0));border:1px solid rgba(148,163,184,.2)}
+/* 主要版面：桌機雙欄 */
+.wrap{
+  max-width:1100px;margin:14px auto 28px;padding:0 16px;
+  display:grid;grid-template-columns:1fr 360px;gap:12px;
+}
+.panel{
+  background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);
+  border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px);padding:12px;
+}
+.canvas-wrap{
+  position:relative;padding:10px;border-radius:12px;
+  background:radial-gradient(1000px 360px at 50% -40%, rgba(56,189,248,.15), transparent 60%),
+             linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+  border:1px solid rgba(148,163,184,.2)
+}
 #board{display:block;width:900px;height:520px;border-radius:10px;background:#0a0f1f}
 #chart{display:block;width:900px;height:220px;border-radius:10px;background:#0b1224}
+
 .legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:.9rem;margin-top:6px}
 .dot{width:12px;height:12px;border-radius:999px;display:inline-block}
 .bar{background:var(--accent)} .line{background:var(--accent2)}
@@ -23,6 +36,7 @@ header h1{margin:0;font-size:1.7rem;font-weight:800;color:#f0f9ff}
 .stat{padding:8px 10px;border-radius:10px;background:rgba(2,6,23,.4);border:1px solid rgba(148,163,184,.2)}
 .stat .k{font-size:.78rem;color:var(--muted)} .stat .v{font-weight:700}
 
+/* 控制 */
 .controls{padding:12px;display:grid;gap:12px;background:rgba(2,6,23,.35);border:1px dashed rgba(148,163,184,.25);border-radius:12px}
 .control{display:grid;gap:8px}
 .control label{font-size:.9rem;color:var(--muted)}
@@ -34,26 +48,57 @@ header h1{margin:0;font-size:1.7rem;font-weight:800;color:#f0f9ff}
 .btn{appearance:none;border:1px solid rgba(148,163,184,.35);background:linear-gradient(180deg,rgba(56,189,248,.18),rgba(56,189,248,.08));color:#e6f7ff;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700}
 .btn.warn{background:linear-gradient(180deg,rgba(248,113,113,.22),rgba(248,113,113,.10));border-color:rgba(248,113,113,.45);color:#ffecec}
 
-.logo-fixed{position:fixed;right:16px;bottom:16px;width:92px;opacity:.95;filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:70}
+/* 公司 Logo 固定右下；手機縮小 */
+.logo-fixed{
+  position:fixed;right:16px;bottom:16px;width:92px;height:auto;opacity:.95;
+  filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:50;
+}
 
-@media (max-width:980px){
+/* 手機：單欄，控制進抽屜；齒輪避開 logo */
+#fabCtrl{display:none}
+#sheetBackdrop{display:none}
+@media (max-width:980px),(hover:none) and (pointer:coarse){
   .wrap{grid-template-columns:1fr}
   #board,#chart{width:100%;height:auto}
-  .logo-fixed{width:70px;right:10px;bottom:12px}
+  .logo-fixed{width:58px;right:12px;bottom:12px}
+
+  /* 抽屜（bottom sheet） */
+  .controls-panel{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:85vh;
+    transform:translateY(105%);transition:transform .25s ease;
+    border-radius:16px 16px 0 0;backdrop-filter:blur(8px);overflow:hidden;padding-top:6px
+  }
+  .controls-panel.open{transform:translateY(0)}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 2px 12px}
+  .sheet-title{font-weight:800}
+  .sheet-close{appearance:none;border:1px solid rgba(148,163,184,.28);background:rgba(148,163,184,.12);color:#e5e7eb;border-radius:10px;padding:6px 10px;font-weight:800}
+  .controls{max-height:60vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .btns{position:sticky;bottom:0;background:rgba(2,6,23,.55);border-top:1px solid rgba(148,163,184,.15);padding-top:8px}
+
+  /* 齒輪 FAB：為了不與 logo 疊在一起，往左退一格 */
+  #fabCtrl{
+    display:grid;place-items:center;position:fixed;right:84px;bottom:16px;z-index:65;
+    width:52px;height:52px;border-radius:999px;border:1px solid rgba(148,163,184,.35);
+    background:radial-gradient(120% 120% at 70% 20%,rgba(56,189,248,.35),rgba(31,41,55,.9));
+    color:#e6f7ff;font-size:1.2rem;font-weight:900;box-shadow:0 10px 24px rgba(0,0,0,.45)
+  }
+  #sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:55}
+  #sheetBackdrop.show{opacity:1;pointer-events:auto}
+  body.drawer-open{overflow:hidden}
 }
 </style>
 </head>
 <body>
 <header><h1>🎯 二項分布模擬器（數位高爾頓板）</h1></header>
 
-<img class="logo-fixed" src="company-logo.png" alt="Company Logo"/>
+<img class="logo-fixed" src="./company-logo.png" alt="Company Logo"/>
 
 <div class="wrap">
-  <!-- 左側：板子＋結果圖 -->
+  <!-- 左：板子 + 結果圖 -->
   <div>
     <div class="panel canvas-wrap">
       <canvas id="board" width="900" height="520"></canvas>
-      <div class="legend"><span class="dot bar"></span> 累積次數 <span class="dot line"></span> 理論二項分布</div>
+      <div class="legend"><span class="dot bar"></span> 累積次數（每格=成功次數 k） <span class="dot line"></span> 理論二項分布（縮放到總球數）</div>
       <div class="stats">
         <div class="stat"><div class="k">總球數</div><div class="v" id="statTotal">0</div></div>
         <div class="stat"><div class="k">實際平均 k̄</div><div class="v" id="statMean">0</div></div>
@@ -64,8 +109,9 @@ header h1{margin:0;font-size:1.7rem;font-weight:800;color:#f0f9ff}
     <div class="panel"><canvas id="chart" width="900" height="220"></canvas></div>
   </div>
 
-  <!-- 右側：控制 -->
-  <div class="panel">
+  <!-- 右：控制（桌機）／抽屜（手機） -->
+  <div class="panel controls-panel" id="controlsWrap">
+    <div class="sheet-head" id="sheetHead" style="display:none"></div>
     <div class="controls">
       <div class="control"><label>階層數（3~24）</label><input id="levels" type="number" min="3" max="24" value="12"/><input id="levelsR" class="range" type="range" min="3" max="24" value="12"/></div>
       <div class="control"><label>向右機率 p（0~1）</label><input id="pRight" type="number" min="0" max="1" step="0.01" value="0.5"/><input id="pRightR" class="range" type="range" min="0" max="1" step="0.01" value="0.5"/></div>
@@ -82,8 +128,12 @@ header h1{margin:0;font-size:1.7rem;font-weight:800;color:#f0f9ff}
   </div>
 </div>
 
-<!-- 背景音樂 -->
-<audio id="bgm" src="bgm.mp3" preload="auto" loop></audio>
+<!-- 手機：齒輪與遮罩 -->
+<button id="fabCtrl">⚙️</button>
+<div id="sheetBackdrop"></div>
+
+<!-- 背景音樂（GitHub Pages 建議用相對路徑） -->
+<audio id="bgm" src="./bgm.mp3" preload="auto" loop></audio>
 
 <script>
 (function(){
@@ -91,17 +141,29 @@ const $=id=>document.getElementById(id);
 const boardEl=$('board'), chartEl=$('chart');
 const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
 
-/* 音樂：有球在跑→播放；暫停或無球→停止 */
+/* ===== 音訊解鎖（GitHub Pages 必備） ===== */
 const bgm=$('bgm'); let audioUnlocked=false;
-function unlockAudio(){ if(audioUnlocked) return; audioUnlocked=true; try{ bgm.play().then(()=>bgm.pause()).catch(()=>{});}catch(e){} }
-function setMusic(active){ if(!audioUnlocked) return; if(active){ if(bgm.paused) bgm.play().catch(()=>{});} else if(!bgm.paused){ bgm.pause(); }}
+const audioHint=document.createElement('div');
+audioHint.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:8px 12px;border-radius:10px;background:rgba(2,6,23,.85);border:1px solid rgba(148,163,184,.25);color:#e5e7eb;font-size:.9rem;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:999;display:none';
+audioHint.textContent='🔈 點一下啟用音效';
+document.body.appendChild(audioHint);
+const showAudioHint=()=>audioHint.style.display='block';
+const hideAudioHint=()=>audioHint.style.display='none';
+function primeAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked=true;
+  try{ bgm.volume=0.6; bgm.play().then(()=>{bgm.pause(); hideAudioHint();}).catch(()=>{});}catch(e){}
+}
+window.addEventListener('pointerdown',primeAudio,{once:true});
+window.addEventListener('keydown',primeAudio,{once:true});
+function tryPlayBgm(){ if(!audioUnlocked) return; bgm.play().then(hideAudioHint).catch(showAudioHint); }
 
-/* 參數與狀態 */
+/* ===== 參數與狀態 ===== */
 let params={levels:+$('levels').value,pRight:+$('pRight').value,batch:+$('batch').value,releaseHz:+$('release').value,fallSpeed:+$('fall').value};
 let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],queueBatches=0,emitClock=0;
 const MAX_ACTIVE=12000,AUTO_GAP=0.85;
 
-/* 幾何 */
+/* ===== 幾何組裝 ===== */
 function build(){
   const W=boardEl.width,H=boardEl.height,n=params.levels;
   const m={top:24,bottom:90,left:24,right:24};
@@ -114,27 +176,22 @@ function build(){
   scheduleChart(); updateStats();
 }
 
-/* 經典樣式：三角釘＋底部分隔短線 */
+/* ===== 經典繪圖：三角釘＋底部短線 ===== */
 function drawBoard(){
   const g=geom,ctx=B;
   ctx.clearRect(0,0,g.W,g.H);
   ctx.fillStyle='#081029'; ctx.fillRect(0,0,g.W,g.H);
-
   ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.lineWidth=1.2;
   ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
-
   ctx.fillStyle='rgba(148,163,184,.85)';
   for(const row of g.pegs){ for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI); ctx.fill(); } }
-
   ctx.strokeStyle='rgba(56,189,248,.35)';
   for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-16); ctx.stroke(); }
-
   ctx.fillStyle='rgba(56,189,248,.92)';
-  for(const b of balls){ const a=b.pts[b.seg], c=b.pts[b.seg+1]||a; const x=a.x+(c.x-a.x)*b.t, y=a.y+(c.y-a.y)*b.t;
-    ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill(); }
+  for(const b of balls){ const a=b.pts[b.seg], c=b.pts[b.seg+1]||a; const x=a.x+(c.x-a.x)*b.t, y=a.y+(c.y-a.y)*b.t; ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill(); }
 }
 
-/* 結果圖（長條＋理論曲線） */
+/* ===== 結果圖：實測長條＋理論曲線 ===== */
 function logF(n){ if(!logF.c){logF.c=[0,0];} const c=logF.c; for(let i=c.length;i<=n;i++) c[i]=c[i-1]+Math.log(i); return c[n]; }
 function pmf(n,k,p){ if(k<0||k>n) return 0; if(p===0) return k===0?1:0; if(p===1) return k===n?1:0; return Math.exp(logF(n)-logF(k)-logF(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p)); }
 let chartTimer=null;
@@ -151,15 +208,10 @@ function drawChart(){
   for(let i=0;i<=4;i++){ const y=pad+(H-pad-16)*i/4; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-10,y); ctx.stroke(); }
 
   const plotW=W-pad-10, plotH=H-pad-16, barW=plotW/(n+1)*0.8, gap=plotW/(n+1)*0.2;
-
-  // 實測長條
   for(let k=0;k<=n;k++){
     const x=pad+k*(barW+gap)+gap*0.5, h=(data[k]/ymax)*plotH;
-    ctx.fillStyle='rgba(56,189,248,.75)';
-    ctx.fillRect(x, pad+plotH-h, barW, h);
+    ctx.fillStyle='rgba(56,189,248,.75)'; ctx.fillRect(x, pad+plotH-h, barW, h);
   }
-
-  // 理論曲線
   ctx.strokeStyle='rgba(248,113,113,1)'; ctx.lineWidth=1.8; ctx.beginPath();
   for(let k=0;k<=n;k++){
     const x=pad+k*(barW+gap)+(gap*0.5+barW/2);
@@ -169,7 +221,7 @@ function drawChart(){
   ctx.stroke();
 }
 
-/* 其他邏輯 */
+/* ===== 模擬核心 ===== */
 function makeBall(){ const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
   for(let s=1;s<=g.n;s++){ if(Math.random()<params.pRight) r++; pts.push({x:g.cx+(2*r-s)*g.dx,y:g.sy+s*g.ry}); }
   pts.push({x:g.slots[r],y:g.floor}); return {pts,seg:0,t:0,spd:140*params.fallSpeed,bin:r}; }
@@ -205,10 +257,14 @@ function tick(ts){
   }
 
   drawBoard();
-  setMusic(!paused && (balls.length||microQueue.length||queueBatches||auto));
+
+  const shouldPlay = !paused && (balls.length||microQueue.length||queueBatches||auto);
+  if(shouldPlay) tryPlayBgm(); else { if(!bgm.paused) bgm.pause(); }
+
   requestAnimationFrame(tick);
 }
 
+/* ===== 統計 ===== */
 function updateStats(){
   $('statTotal').textContent=total;
   $('statMean').textContent= total? (sumK/total).toFixed(3) : '0';
@@ -216,10 +272,10 @@ function updateStats(){
   $('statVarTh').textContent=(params.levels*params.pRight*(1-params.pRight)).toFixed(3);
 }
 
-/* 控制同步 */
+/* ===== 控制同步 ===== */
 function syncPair(num,range,on){
   const n=$(num), r=$(range);
-  const set=v=>{ n.value=v; r.value=v; on(+v); unlockAudio(); };
+  const set=v=>{ n.value=v; r.value=v; on(+v); primeAudio(); };
   n.addEventListener('input',e=>set(e.target.value));
   r.addEventListener('input',e=>set(e.target.value));
 }
@@ -229,19 +285,44 @@ syncPair('batch','batchR',v=>{ params.batch=+v; });
 syncPair('release','releaseR',v=>{ params.releaseHz=+v; });
 syncPair('fall','fallR',v=>{ params.fallSpeed=+v; });
 
-/* 按鈕 */
-$('btnDrop').addEventListener('click',()=>{ queueBatches++; unlockAudio(); });
-$('btnAuto').addEventListener('click',e=>{ auto=!auto; e.target.textContent=auto?'🔁 自動投放：開':'🔁 自動投放：關'; unlockAudio(); });
+/* ===== 按鈕 ===== */
+$('btnDrop').addEventListener('click',()=>{ queueBatches++; primeAudio(); });
+$('btnAuto').addEventListener('click',e=>{ auto=!auto; e.target.textContent=auto?'🔁 自動投放：開':'🔁 自動投放：關'; primeAudio(); });
 $('btnPause').addEventListener('click',e=>{
   paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停';
-  if(paused) setMusic(false); else setMusic(balls.length||microQueue.length||queueBatches||auto);
+  if(paused) { if(!bgm.paused) bgm.pause(); } else { tryPlayBgm(); }
 });
 $('btnReset').addEventListener('click',()=>{
   auto=false; $('btnAuto').textContent='🔁 自動投放：關';
-  build(); setMusic(false);
+  build(); if(!bgm.paused) bgm.pause();
 });
 
-/* 啟動 */
+/* ===== 手機抽屜（齒輪） ===== */
+const wrap=$('controlsWrap'), fab=$('fabCtrl'), mask=$('sheetBackdrop'), head=$('sheetHead');
+function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
+function openDrawer(open){
+  if(!isMobile()) return;
+  wrap.classList.toggle('open',open);
+  mask.classList.toggle('show',open);
+  document.body.classList.toggle('drawer-open',open);
+  if(open) primeAudio(); // 點開也視為一次使用者互動
+}
+function refreshDrawerHeader(){
+  if(isMobile()){
+    head.style.display='flex';
+    head.innerHTML = '<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
+    const closeBtn = document.getElementById('btnSheetClose');
+    closeBtn.addEventListener('click',()=>openDrawer(false));
+  }else{
+    head.style.display='none';
+  }
+}
+fab.addEventListener('click',()=>openDrawer(true));
+mask.addEventListener('click',()=>openDrawer(false));
+window.addEventListener('resize',refreshDrawerHeader);
+refreshDrawerHeader();
+
+/* ===== 啟動 ===== */
 build(); requestAnimationFrame(tick);
 })();
 </script>
