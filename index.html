@@ -259,72 +259,76 @@ function fitMobileHeight(){
   }
 
   /* ===== 幾何（★改動：手機 n=12 吃滿；>12 只縮間距） ===== */
-  function build(){
-    const W = boardEl.width, H = boardEl.height, n = params.levels;
-    const mobile = isMobile();
+  /* ===== 幾何：釘子與掉落槽線保留安全距（手機/桌機通用） ===== */
+function build(){
+  const W = boardEl.width, H = boardEl.height, n = params.levels;
+  const mobile = isMobile();
 
-    const m = { top:20, bottom: mobile ? 10 : 18, left:14, right:14 };
+  // 外框與水平幾何（維持原本）
+  const m = { top:20, bottom: mobile ? 10 : 18, left:14, right:14 };
+  const bw = Math.max(10, W - m.left - m.right);
+  const px = Math.min(30, Math.max(10, bw/(n+2)));
+  const dx = px / 2;
+  const cx = W/2;
 
-    const bw = Math.max(10, W - m.left - m.right);
-    const px = Math.min(30, Math.max(10, bw/(n+2)));
-    const dx = px / 2;
+  // 可用垂直區間（不動 floor，僅確保最後一排不貼線）
+  const sy0 = m.top + 6;
+  const floor = H - m.bottom - 6;
+  const avail = Math.max(40, floor - sy0);
 
-    const cx = W/2;
+  // ★與掉落槽線的安全距（讓最後一排釘與槽線保持間隙）
+  const CLEAR = 12;  // 想更大就調 14~16
 
-    // 先粗估 ry -> 得到 pegR -> 用 pegR 重新決定 sy/floor -> 回填 ry
-    const sy0 = m.top + 6;
-    const floor0 = H - m.bottom - 6;
-    const span0 = Math.max(20, floor0 - sy0);
-    let ry_guess = span0 / 12;
-    let pegR = Math.min(3, Math.max(2, ry_guess * 0.22));
+  // 先估一個 ry，算 pegR，再做最終 ry 決定
+  let ry_est = avail / 12;
+  let pegR = Math.min(3, Math.max(2, ry_est * 0.22));
 
-  // === 把所有釘子整體往上移一點（跨平台） ===
-  // 自動依 ry 調整，上移約 4~10px；你也可以改成固定數字例如 6
-  const LIFT = Math.round(Math.min(10, Math.max(4, ry * 0.45)));
-  const syRaised = Math.max(m.top + 6, sy - LIFT); // 不要頂到上邊
+  // 最終行距 ry
+  let ry;
+  if (mobile) {
+    // 手機：n=12 吃滿「扣掉安全距」；n>12 只縮縱向間距，台面大小不變
+    const span12 = Math.max(20, avail - CLEAR);
+    if (n === 12) ry = span12 / n;
+    else ry = (span12 / 12) * (12 / n);
+  } else {
+    // 桌機：沿用原邏輯，再檢查是否觸底，必要時用安全距回壓
+    const targetRef = 12, baseClear = 10;
+    const availDesk = Math.max(40, (H - (m.top + m.bottom) - baseClear));
+    let baseRy = availDesk / targetRef;
+    ry = baseRy * Math.min(1, targetRef/Math.max(1,n));
+    ry = Math.max(6, Math.min(36, ry));
 
-   // 這兩行替換原本的：
-const sy    = mobile ? (m.top + 6 + pegR) : (m.top + 6);
-const floor = mobile ? (H - m.bottom - 6 - pegR) : (H - m.bottom - 6);
-
-// 接著再算：
-const span = Math.max(20, floor - sy);
-
-
-    let ry;
-    if (mobile) {
-      if (n === 12) {
-        ry = span / n;              // 滿版
-      } else {
-        const ry12 = span / 12;     // 以 12 滿版為基準
-        ry = ry12 * (12 / n);       // 只縮間距
-      }
-    } else {
-      const targetRef = 12, baseClear = 10;
-      const avail = Math.max(40, (H - (m.top + m.bottom) - baseClear));
-      let baseRy = avail / targetRef;
-      ry = baseRy * Math.min(1, targetRef/Math.max(1,n));
-      ry = Math.max(6, Math.min(36, ry));
+    // 若最後一排會低於 floor - CLEAR，則回壓到剛好留出安全距
+    const lastY = sy0 + n*ry;
+    const maxLast = floor - CLEAR;
+    if (lastY > maxLast) {
+      ry = Math.max(6, (maxLast - sy0) / n);
     }
-
-    pegR = Math.min(3, Math.max(2, ry * 0.22));
-
-    const slots = Array.from({length:n+1}, (_,k) => cx - (n*dx) + k*px);
-    const pegs = [];
-    for (let r=0; r<n; r++){
-      const y = syRaised + (r+1)*ry;   // r=n-1 時：sy + n*ry = floor（手機 n=12）
-      const row = [];
-      for (let j=0; j<=r; j++) row.push({ x: cx - (r*dx) + j*px, y });
-      pegs.push(row);
-    }
-
-geom = { W, H, m, n, cx, sy: syRaised, ry, dx, px, slots, pegs, floor, pegR };
-
-
-    counts = Array(n+1).fill(0);
-    total = 0; sumK = 0; balls = []; microQueue = []; emitClock = 0;
-    scheduleChart(); updateStats();
   }
+
+  // 依最終 ry 更新釘子半徑
+  pegR = Math.min(3, Math.max(2, ry * 0.22));
+
+  // 釘子座標（保持從 sy0 開始往下長，但最後一排必定位於 floor - CLEAR 之上）
+  const sy = sy0;
+  const slots = Array.from({length:n+1}, (_,k) => cx - (n*dx) + k*px);
+  const pegs = [];
+  for (let r=0; r<n; r++){
+    const y = sy + (r+1)*ry;
+    const row = [];
+    for (let j=0; j<=r; j++) row.push({ x: cx - (r*dx) + j*px, y });
+    pegs.push(row);
+  }
+
+  // 幾何輸出（floor 不變，畫線與掉落槽線邏輯不動）
+  geom = { W, H, m, n, cx, sy, ry, dx, px, slots, pegs, floor, pegR };
+
+  // 重設狀態
+  counts = Array(n+1).fill(0);
+  total = 0; sumK = 0; balls = []; microQueue = []; emitClock = 0;
+  scheduleChart(); updateStats();
+}
+
 
   /* ===== 繪板 ===== */
   function drawBoard(){
