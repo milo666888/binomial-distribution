@@ -278,6 +278,11 @@ function fitMobileHeight(){
     let ry_guess = span0 / 12;
     let pegR = Math.min(3, Math.max(2, ry_guess * 0.22));
 
+  // === 把所有釘子整體往上移一點（跨平台） ===
+  // 自動依 ry 調整，上移約 4~10px；你也可以改成固定數字例如 6
+  const LIFT = Math.round(Math.min(10, Math.max(4, ry * 0.45)));
+  const syRaised = Math.max(m.top + 6, sy - LIFT); // 不要頂到上邊
+
    // 這兩行替換原本的：
 const sy    = mobile ? (m.top + 6 + pegR) : (m.top + 6);
 const floor = mobile ? (H - m.bottom - 6 - pegR) : (H - m.bottom - 6);
@@ -307,13 +312,14 @@ const span = Math.max(20, floor - sy);
     const slots = Array.from({length:n+1}, (_,k) => cx - (n*dx) + k*px);
     const pegs = [];
     for (let r=0; r<n; r++){
-      const y = sy + (r+1)*ry;      // r=n-1 時：sy + n*ry = floor（手機 n=12）
+      const y = syRaised + (r+1)*ry;   // r=n-1 時：sy + n*ry = floor（手機 n=12）
       const row = [];
       for (let j=0; j<=r; j++) row.push({ x: cx - (r*dx) + j*px, y });
       pegs.push(row);
     }
 
-    geom = { W, H, m, n, cx, sy, ry, dx, px, slots, pegs, floor, pegR };
+geom = { W, H, m, n, cx, sy: syRaised, ry, dx, px, slots, pegs, floor, pegR };
+
 
     counts = Array(n+1).fill(0);
     total = 0; sumK = 0; balls = []; microQueue = []; emitClock = 0;
