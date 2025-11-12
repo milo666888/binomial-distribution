@@ -214,7 +214,7 @@ h1{
   const MAX_ACTIVE=12000, AUTO_GAP=0.85;
 
   /* ===== 工具 ===== */
-  function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
+  const isMobile = ()=> window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches;
   function sizeCanvasToDisplaySize(canvas){
     const DPR=Math.max(1,window.devicePixelRatio||1);
     const rect=canvas.getBoundingClientRect();
@@ -222,8 +222,28 @@ h1{
     const h=Math.max(2,Math.round(rect.height*DPR));
     if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
   }
-  function resizeAll(){ sizeCanvasToDisplaySize(boardEl); sizeCanvasToDisplaySize(chartEl); build(); drawBoard(); drawChart(); }
-  window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
+
+  /* 手機：以視窗可視高度做精準校正（固定板面高度、避免空黑） */
+  function fitMobileHeight(){
+    if(!isMobile()) return;
+    const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight) || 600;
+    // 固定高度上限，不讓板面越長越高；寬度也做上限折衷，避免超高手機
+    const target = Math.round(Math.max(300, Math.min(vh*0.52, window.innerWidth*0.65)));
+    const chartH = Math.round(Math.max(180, vh*0.26));
+    boardEl.style.height = target + 'px';
+    chartEl.style.height  = chartH + 'px';
+  }
+
+  function resizeAll(){
+    if(isMobile()) fitMobileHeight();  // 只動手機
+    sizeCanvasToDisplaySize(boardEl);
+    sizeCanvasToDisplaySize(chartEl);
+    build(); drawBoard(); drawChart();
+  }
+  window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); }, {passive:true});
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); }, {passive:true});
+  }
 
   /* ===== 幾何：多階層自動縮放，最後一排不上線 ===== */
   function build(){
@@ -389,7 +409,8 @@ h1{
     n.addEventListener('input',e=>set(e.target.value),{passive:true});
     r.addEventListener('input',e=>set(e.target.value),{passive:true});
   }
-  link('levels','levelsR', v=>{ params.levels=v|0; build(); });
+  // 手機要重新壓縮排釘 → 用 resizeAll()（桌機不受影響）
+  link('levels','levelsR', v=>{ params.levels=v|0; resizeAll(); });
   link('pRight','pRightR', v=>{ params.pRight=+v; scheduleChart(); updateStats(); });
   link('batch','batchR', v=>{ params.batch=+v; });
   link('release','releaseR', v=>{ params.releaseHz=+v; });
@@ -427,7 +448,7 @@ h1{
   /* ===== 啟動 ===== */
   boardEl.style.width='100%'; chartEl.style.width='100%';
   boardEl.style.height='46vh'; chartEl.style.height='22vh';
-  if(isMobile()){ boardEl.style.height='48svh'; chartEl.style.height='24svh'; }
+  if(isMobile()){ fitMobileHeight(); } // 手機啟動先校正一次
   resizeAll(); requestAnimationFrame(tick);
 })();
 </script>
