@@ -7,98 +7,124 @@
 <style>
 :root{--bg:#0f172a;--panel:#111827;--card:#1f2937;--accent:#38bdf8;--accent2:#f87171;--text:#e5e7eb;--muted:#94a3b8}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Arial,sans-serif;color:var(--text);
-background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%)}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,"Microsoft JhengHei",Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:linear-gradient(180deg,#0b1025 0%, #0f172a 60%, #0b1025 100%);
+  font-size:15px;
+}
 
-/* Header：只留音樂按鈕（桌機保持） */
-header{padding:10px 12px 8px;display:flex;align-items:center;justify-content:space-between}
-h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
-.tools{display:flex;align-items:center;gap:10px}
-#btnMusic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid rgba(148,163,184,.25);
-  background:rgba(2,6,23,.5);color:#e5e7eb;font-size:1.05rem;cursor:pointer}
-#btnMusic.off{opacity:.65;text-decoration:line-through}
+/* Header */
+header{position:relative;padding:12px 12px 8px}
+h1{
+  margin:0;text-align:center;font-weight:800;letter-spacing:.02em;color:#f0f9ff;
+  font-size:clamp(1.35rem,1.9vw,1.85rem);
+}
+.tools{position:absolute;right:12px;top:10px;display:flex;gap:10px}
+#btnMusic{
+  display:grid;place-items:center;width:36px;height:36px;border-radius:10px;
+  border:1px solid rgba(148,163,184,.25);
+  background:rgba(2,6,23,.5);color:#e5e7eb;font-size:1.05rem;cursor:pointer
+}
+#btnMusic.off{opacity:.7;text-decoration:line-through}
 
-/* 右下公司 Logo（桌機固定） */
-.logo-fixed{position:fixed;right:16px;bottom:16px;width:90px;height:auto;opacity:.95;
-  filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:1900}
+/* Layout */
+.wrap{
+  width:min(96vw,1500px);
+  margin:8px auto 24px;
+  padding:0 12px;
+  display:grid;
+  grid-template-columns: 1fr 320px;   /* 左側更寬，右欄變瘦 */
+  gap:12px;
+}
+.panel{
+  background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);
+  border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px);
+  padding:12px
+}
+.canvas-wrap{
+  position:relative;padding:10px 10px 4px 10px;
+  border-radius:12px;
+  background:
+    radial-gradient(1000px 360px at 50% -40%, rgba(56,189,248,.15), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+  border:1px solid rgba(148,163,184,.2)
+}
+#board{display:block;width:100%;height:46vh;border-radius:10px;background:#0a0f1f}
+#chart{display:block;width:100%;height:22vh;border-radius:10px;background:#0b1224}
 
-/* 主版面（桌機保持你原本） */
-.wrap{max-width:1100px;margin:12px auto 24px;padding:0 16px;display:grid;grid-template-columns:1fr 360px;gap:12px}
-.panel{background:rgba(31,41,55,.85);border:1px solid rgba(148,163,184,.2);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);
-  backdrop-filter:blur(6px);padding:12px}
-.canvas-wrap{position:relative;padding:10px;border-radius:12px;
-  background:radial-gradient(1000px 360px at 50% -40%, rgba(56,189,248,.15), transparent 60%),
-            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
-  border:1px solid rgba(148,163,184,.2)}
-#board{display:block;width:900px;height:520px;border-radius:10px;background:#0a0f1f}
-#chart{display:block;width:900px;height:220px;border-radius:10px;background:#0b1224}
-.legend{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.85rem;margin-top:6px;flex-wrap:wrap}
+.legend{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.9rem;margin-top:2px;flex-wrap:wrap}
 .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
-.bar{background:var(--accent)}
-.line{background:var(--accent2)}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:6px}
-.stat{padding:6px 8px;border-radius:10px;background:rgba(2,6,23,.4);border:1px solid rgba(148,163,184,.2)}
-.stat .k{font-size:.75rem;color:var(--muted)}
-.stat .v{font-weight:700}
+.bar{background:var(--accent)} .line{background:var(--accent2)}
 
-/* 控制區（桌機保持） */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:4px}
+.stat{padding:6px 8px;border-radius:10px;background:rgba(2,6,23,.4);border:1px solid rgba(148,163,184,.2)}
+.stat .k{font-size:.85rem;color:var(--muted)}
+.stat .v{font-weight:800;font-size:1rem}
+
+/* Controls */
 .controls{padding:12px;display:grid;gap:12px;background:rgba(2,6,23,.35);border:1px dashed rgba(148,163,184,.25);border-radius:12px}
 .control{display:grid;gap:8px}
-.control label{font-size:.85rem;color:var(--muted)}
-.control input[type=number]{background:var(--card);color:var(--text);border:1px solid rgba(148,163,184,.35);
-  border-radius:8px;padding:6px 10px}
+.control label{font-size:.9rem;color:var(--muted)}
+.control input[type=number]{background:var(--card);color:var(--text);border:1px solid rgba(148,163,184,.35);border-radius:8px;padding:6px 8px;font-size:.95rem}
 .range{appearance:none;width:100%;height:6px;border-radius:6px;background:rgba(148,163,184,.22)}
 .range::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent)}
 .range::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:none}
 .btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
-.btn{appearance:none;border:1px solid rgba(148,163,184,.35);
+.btn{
+  appearance:none;border:1px solid rgba(148,163,184,.35);
   background:linear-gradient(180deg,rgba(56,189,248,.18),rgba(56,189,248,.08));
-  color:#e6f7ff;padding:9px 13px;border-radius:10px;cursor:pointer;font-weight:700}
-.btn.warn{background:linear-gradient(180deg,rgba(248,113,113,.22),rgba(248,113,113,.10));
-  border-color:rgba(248,113,113,.45);color:#ffecec}
+  color:#e6f7ff;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:800;font-size:.95rem
+}
+.btn.warn{background:linear-gradient(180deg,rgba(248,113,113,.22),rgba(248,113,113,.10));border-color:rgba(248,113,113,.45);color:#ffecec}
 
-/* ===== 手機（修你要的四點） ===== */
+/* Company logo (desktop) */
+.logo-fixed{
+  position:fixed;right:16px;bottom:16px;width:90px;height:auto;opacity:.95;
+  filter:drop-shadow(0 6px 16px rgba(0,0,0,.45));pointer-events:none;z-index:1200
+}
+
+/* Mobile */
 #sheetBackdrop{display:none}
 .mobile-float{display:none}
-
 @media (max-width:980px),(hover:none) and (pointer:coarse){
-  /* 1) 標題縮到原本 70% */
-  header h1{ font-size:0.84rem; }
+  /* 標題約 70% */
+  header h1{font-size:0.84rem}
 
-  /* 2) 讓資訊緊貼板面，去掉空黑 */
-  .wrap{grid-template-columns:1fr}
-  .panel{padding:6px}
-  .canvas-wrap{padding:4px}
-  .legend{margin-top:2px}
-  .stats{margin-top:2px}
+  .wrap{grid-template-columns:1fr;width:96vw}
+  .panel{padding:8px}
+  .canvas-wrap{padding:6px 6px 4px 6px}
+  .legend{margin-top:4px}.stats{margin-top:4px}
   #board{width:100%;height:48svh;height:48dvh}
   #chart{width:100%;height:24svh;height:24dvh}
 
-  /* 3) 抽屜回來；打開時暫停；按下操作鍵自動收起 */
+  /* 抽屜 */
   .controls-panel{position:fixed;left:0;right:0;bottom:0;z-index:1700;max-height:85svh;
-    transform:translateY(105%);transition:transform .25s ease;border-radius:16px 16px 0 0;backdrop-filter:blur(8px);
-    overflow:hidden;padding-top:6px}
+    transform:translateY(105%);transition:transform .25s ease;border-radius:16px 16px 0 0;
+    backdrop-filter:blur(8px);overflow:hidden;padding-top:6px}
   .controls-panel.open{transform:translateY(0)}
   .controls{max-height:60svh;overflow:auto;-webkit-overflow-scrolling:touch}
   .btns{position:sticky;bottom:0;background:rgba(2,6,23,.55);border-top:1px solid rgba(148,163,184,.15);padding-top:8px}
-  .sheet-head{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 2px 12px}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 2px}
   .sheet-title{font-weight:800}
   .sheet-close{appearance:none;border:1px solid rgba(148,163,184,.28);background:rgba(148,163,184,.12);color:#e5e7eb;border-radius:10px;padding:6px 10px;font-weight:800}
 
   /* 遮罩 */
-  #sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:1650}
+  #sheetBackdrop{display:block;position:fixed;inset:0;background:rgba(2,6,23,.45);
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:1650}
   #sheetBackdrop.show{opacity:1;pointer-events:auto}
   body.drawer-open{overflow:hidden}
 
-  /* 右下雙 Icon：同尺寸、水平，不擋按鈕 */
+  /* 右下：齒輪 + Logo 等大對齊 */
   .mobile-float{display:flex;gap:10px;position:fixed;right:16px;bottom:16px;z-index:1800;align-items:center}
-  .float-btn, .float-logo{
+  .float-btn,.float-logo{
     width:44px;height:44px;border-radius:12px;border:1px solid rgba(148,163,184,.25);
     background:rgba(2,6,23,.65);box-shadow:0 10px 24px rgba(0,0,0,.45)
   }
   .float-btn{display:grid;place-items:center;color:#e5e7eb;font-size:1.1rem}
   .float-logo{object-fit:contain;padding:3px}
-
   .logo-fixed{display:none}
 }
 </style>
@@ -109,14 +135,14 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     <div class="tools"><button id="btnMusic" title="背景音樂">🎵</button></div>
   </header>
 
-  <!-- 桌機：右下公司 Logo 固定 -->
+  <!-- 桌機右下公司 Logo -->
   <img class="logo-fixed" src="./company-logo.png" alt="Company Logo"/>
 
   <div class="wrap">
-    <!-- 左：板子 + 結果圖 -->
+    <!-- 左：板面與圖表 -->
     <div>
       <div class="panel canvas-wrap">
-        <canvas id="board" width="900" height="520"></canvas>
+        <canvas id="board"></canvas>
         <div class="legend"><span class="dot bar"></span> 累積次數 <span class="dot line"></span> 理論二項分布</div>
         <div class="stats">
           <div class="stat"><div class="k">總球數</div><div class="v" id="statTotal">0</div></div>
@@ -125,7 +151,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
           <div class="stat"><div class="k">理論變異 np(1−p)</div><div class="v" id="statVarTh">0</div></div>
         </div>
       </div>
-      <div class="panel"><canvas id="chart" width="900" height="220"></canvas></div>
+      <div class="panel"><canvas id="chart"></canvas></div>
     </div>
 
     <!-- 右：控制（桌機）／抽屜（手機） -->
@@ -147,14 +173,14 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     </div>
   </div>
 
-  <!-- 手機：右下「設定⚙️ + 公司Logo」 -->
+  <!-- 手機右下：齒輪 + Logo -->
   <div class="mobile-float">
     <button id="btnOpenDrawer" class="float-btn" title="設定">⚙️</button>
     <img src="./company-logo.png" alt="Company Logo" class="float-logo"/>
   </div>
   <div id="sheetBackdrop"></div>
 
-  <!-- 音樂（不動） -->
+  <!-- 音樂：維持既有邏輯 -->
   <audio id="bgm" src="./bgm.mp3" preload="auto" loop playsinline></audio>
 
 <script>
@@ -163,7 +189,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   const boardEl=$('board'), chartEl=$('chart');
   const B=boardEl.getContext('2d'), C=chartEl.getContext('2d');
 
-  /* ===== 音樂（保持你要的行為） ===== */
+  /* ===== 音樂（不要動邏輯） ===== */
   const bgm=$('bgm'), btnMusic=$('btnMusic');
   function setMusicIcon(){ btnMusic.textContent = bgm.muted ? '🔇' : '🎵'; btnMusic.classList.toggle('off', bgm.muted); }
   function tryPlayMusic(){ if(!bgm.muted && bgm.paused){ bgm.currentTime = bgm.currentTime || 0; bgm.play().catch(()=>{}); } }
@@ -181,66 +207,97 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   setMusicIcon();
 
   /* ===== 參數與狀態 ===== */
-  let params={ levels:+$('levels').value, pRight:+$('pRight').value, batch:+$('batch').value, releaseHz:+$('release').value, fallSpeed:+$('fall').value };
+  let params={ levels:12, pRight:0.5, batch:12, releaseHz:3, fallSpeed:1.2 };
+  ['levels','pRight','batch','release','fall'].forEach(k=>{ $(k).value=params[k]; $(k+'R').value=params[k]; });
+
   let geom,balls=[],counts=[],total=0,sumK=0,paused=false,auto=false,microQueue=[],emitClock=0;
   const MAX_ACTIVE=12000, AUTO_GAP=0.85;
 
   /* ===== 工具 ===== */
   function isMobile(){ return window.matchMedia('(max-width:980px),(hover:none) and (pointer:coarse)').matches; }
-  function sizeCanvasToDisplaySize(canvas, cssW, cssH){
+  function sizeCanvasToDisplaySize(canvas){
     const DPR=Math.max(1,window.devicePixelRatio||1);
-    if(cssW) canvas.style.width=cssW+'px';
-    if(cssH) canvas.style.height=cssH+'px';
     const rect=canvas.getBoundingClientRect();
-    const w=Math.round(rect.width*DPR), h=Math.round(rect.height*DPR);
+    const w=Math.max(2,Math.round(rect.width*DPR));
+    const h=Math.max(2,Math.round(rect.height*DPR));
     if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; }
   }
-  function resizeAll(){
-    if(isMobile()){ sizeCanvasToDisplaySize(boardEl); sizeCanvasToDisplaySize(chartEl); }
-    else{ sizeCanvasToDisplaySize(boardEl,900,520); sizeCanvasToDisplaySize(chartEl,900,220); }
-    build(); drawBoard(); drawChart();
-  }
+  function resizeAll(){ sizeCanvasToDisplaySize(boardEl); sizeCanvasToDisplaySize(chartEl); build(); drawBoard(); drawChart(); }
   window.addEventListener('resize', ()=>{ clearTimeout(resizeAll._t); resizeAll._t=setTimeout(resizeAll,90); });
 
-  /* ===== 幾何（底線可見、資訊緊貼） ===== */
+  /* ===== 幾何：多階層自動縮放，最後一排不上線 ===== */
   function build(){
     const W=boardEl.width, H=boardEl.height, n=params.levels;
-    const m={top:20,bottom:isMobile()?10:60,left:20,right:20};
-    const bw=W-m.left-m.right, bh=H-m.top-m.bottom;
 
-    const px=Math.min(28,Math.max(12,bw/(n+2)));
-    const dx=px/2;
+    // 邊界縮一點 => 更寬
+    const m = { top:20, bottom:isMobile()?10:18, left:14, right:14 };
 
-    const cx=W/2, sy=m.top+6;
-    const floor=H-m.bottom-6;
+    const bw = Math.max(10, W - m.left - m.right);
+    const px = Math.min(30, Math.max(10, bw/(n+2)));
+    const dx = px/2;
 
-    const rawRy = bh/(n+1);
-    const squeeze = Math.pow(0.92, Math.max(0, n-14));
-    const ry0 = Math.max(14, Math.min(36, rawRy*squeeze));
-    const SAFE = 18;
-    const maxRyByFloor = (floor - SAFE - sy) / Math.max(1, n);
-    const ry = Math.max(14, Math.min(ry0, maxRyByFloor));
+    const cx = W/2, sy = m.top + 6;
+    const floor = H - m.bottom - 6;
 
-    const slots=Array.from({length:n+1},(_,k)=>cx-(n*dx)+k*px);
-    const pegs=[]; for(let r=0;r<n;r++){ const y=sy+(r+1)*ry, row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y}); pegs.push(row); }
-    geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor};
-    counts=Array(n+1).fill(0); total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0; scheduleChart(); updateStats();
+    const baseClear = 6;         // 與基準線的安全距
+    const minRy = 6;             // 允許超多階層時變小
+    let ry = (floor - (2 + baseClear) - sy) / Math.max(1, n); // 先抓理想值（2≈小釘半徑）
+    ry = Math.max(minRy, Math.min(36, ry));
+
+    // 釘子半徑隨 ry 縮放，避免擠爆
+    let pegR = Math.min(3, Math.max(2, ry * 0.22));
+
+    // 若仍可能碰到基準線，再壓 ry
+    const maxRy = (floor - (pegR + baseClear) - sy) / Math.max(1, n);
+    if (ry > maxRy) ry = Math.max(minRy, maxRy);
+
+    const slots = Array.from({length:n+1},(_,k)=> cx-(n*dx)+k*px);
+    const pegs=[];
+    for(let r=0;r<n;r++){
+      const y = sy + (r+1)*ry;
+      const row=[]; for(let j=0;j<=r;j++) row.push({x:cx-(r*dx)+j*px,y});
+      pegs.push(row);
+    }
+
+    geom={W,H,m,n,cx,sy,ry,dx,px,slots,pegs,floor,pegR};
+
+    counts=Array(n+1).fill(0);
+    total=0; sumK=0; balls=[]; microQueue=[]; emitClock=0;
+    scheduleChart(); updateStats();
   }
 
-  /* ===== 繪板（底線固定畫出） ===== */
+  /* ===== 繪板：槽線固定 10px，嚴守框內 ===== */
   function drawBoard(){
     const g=geom,ctx=B;
     ctx.clearRect(0,0,g.W,g.H);
     ctx.fillStyle='#081029'; ctx.fillRect(0,0,g.W,g.H);
-    ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
 
+    // 外框
+    ctx.strokeStyle='rgba(148,163,184,.35)';
+    ctx.strokeRect(g.m.left,g.m.top,g.W-g.m.left-g.m.right,g.H-g.m.top-g.m.bottom);
+
+    // 釘子（動態半徑）
     ctx.fillStyle='rgba(148,163,184,.85)';
-    for(const row of g.pegs){ for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI); ctx.fill(); } }
+    for(const row of g.pegs){
+      for(const p of row){ ctx.beginPath(); ctx.arc(p.x,p.y,g.pegR,0,2*Math.PI); ctx.fill(); }
+    }
 
+    // 內框界線
+    const innerTop = g.m.top + 1;
+    const innerBottom = g.H - g.m.bottom - 2;
+
+    // 基準線
+    const baseY = Math.min(g.floor + 0.5, innerBottom - 0.5);
+    ctx.beginPath(); ctx.moveTo(g.m.left, baseY); ctx.lineTo(g.W-g.m.right, baseY); ctx.stroke();
+
+    // 槽線：在基準線下方、固定 10px、保證在內框
+    const slotLen = 10;
+    const startY = Math.max(innerTop + 1, Math.min(g.floor + 2, innerBottom - slotLen - 1));
+    const endY   = startY + slotLen;
     ctx.strokeStyle='rgba(56,189,248,.35)';
-    for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x,g.floor); ctx.lineTo(x,g.floor-12); ctx.stroke(); }
-    ctx.beginPath(); ctx.moveTo(g.m.left, g.floor+0.5); ctx.lineTo(g.W-g.m.right, g.floor+0.5); ctx.stroke();
+    for(const x of g.slots){ ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke(); }
 
+    // 球
     ctx.fillStyle='rgba(56,189,248,.92)';
     for(const b of balls){
       const a=b.pts[b.seg], c=b.pts[b.seg+1]||a;
@@ -255,7 +312,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     return Math.exp(logF(n)-logF(k)-logF(n-k)+k*Math.log(p)+(n-k)*Math.log(1-p)); }
   let chartTimer=null; function scheduleChart(){ if(chartTimer) return; chartTimer=setTimeout(()=>{ chartTimer=null; drawChart(); },80); }
   function drawChart(){
-    const ctx=C, W=chartEl.width, H=chartEl.height, pad=30, n=params.levels;
+    const ctx=C, W=chartEl.width, H=chartEl.height, pad=32, n=params.levels;
     const data=counts.slice(); const theo=Array.from({length:n+1},(_,k)=> total*pmf(n,k,params.pRight));
     const ymax=Math.max(1, ...data, ...theo);
     ctx.clearRect(0,0,W,H); ctx.fillStyle='#0b1224'; ctx.fillRect(0,0,W,H);
@@ -269,7 +326,8 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
 
   /* ===== 模擬核心 ===== */
   function makeBall(){
-    const g=geom; let r=0; const pts=[{x:g.cx,y:g.sy}];
+    const g=geom; let r=0;
+    const pts=[{x:g.cx,y:g.sy}];
     for(let s=1;s<=g.n;s++){ if(Math.random()<params.pRight) r++; pts.push({x:g.cx+(2*r-s)*g.dx,y:g.sy+s*g.ry}); }
     pts.push({x:g.slots[r],y:g.floor});
     return {pts,seg:0,t:0,spd:140*params.fallSpeed,bin:r};
@@ -286,6 +344,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
       emitClock-=dt;
       while(emitClock<=0){ if(auto) scheduleBatch(); emitClock += (auto? base*AUTO_GAP : base); }
 
+      // 逐顆微時差出球
       for(let i=0;i<microQueue.length;){
         microQueue[i]-=dt;
         if(microQueue[i]<=0){
@@ -300,6 +359,7 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
         i++;
       }
 
+      // 球移動
       for(let i=balls.length-1;i>=0;i--){
         const b=balls[i], a=b.pts[b.seg], c=b.pts[b.seg+1];
         if(!c){ counts[b.bin]++; total++; sumK+=b.bin; balls.splice(i,1); scheduleChart(); updateStats(); continue; }
@@ -308,14 +368,14 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
         if(b.t>=1){ b.seg++; b.t=0; }
       }
 
-      /* 自動關閉：不再新增，但讓排隊與空中球全部跑完 */
+      // 關自動：不新增，讓佇列與空中球跑完
       if(!auto && microQueue.length===0 && balls.length===0) pauseMusic();
     }
     drawBoard();
     requestAnimationFrame(tick);
   }
 
-  /* ===== 統計區 ===== */
+  /* ===== 統計 ===== */
   function updateStats(){
     $('statTotal').textContent=total;
     $('statMean').textContent= total? (sumK/total).toFixed(3) : '0';
@@ -324,7 +384,8 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   }
 
   /* ===== 控制同步 ===== */
-  function link(num,range,on){ const n=$(num), r=$(range); const set=v=>{ n.value=v; r.value=v; on(+v); };
+  function link(num,range,on){
+    const n=$(num), r=$(range); const set=v=>{ n.value=v; r.value=v; on(+v); };
     n.addEventListener('input',e=>set(e.target.value),{passive:true});
     r.addEventListener('input',e=>set(e.target.value),{passive:true});
   }
@@ -334,10 +395,8 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
   link('release','releaseR', v=>{ params.releaseHz=+v; });
   link('fall','fallR', v=>{ params.fallSpeed=+v; });
 
-  /* ===== 手機抽屜：右下⚙️開關；按了操作鍵會自動關抽屜 ===== */
+  /* ===== 手機抽屜 ===== */
   const wrap=$('controlsWrap'), mask=$('sheetBackdrop'), head=$('sheetHead');
-  const btnOpenDrawer=document.getElementById('btnOpenDrawer');
-  function isDrawerOpen(){ return wrap.classList.contains('open'); }
   function openDrawer(open){
     if(!isMobile()) return;
     wrap.classList.toggle('open',open);
@@ -345,29 +404,31 @@ h1{margin:0;font-size:1.2rem;font-weight:800;color:#f0f9ff}
     document.body.classList.toggle('drawer-open',open);
     head.style.display = open ? 'flex' : 'none';
     if(open){
-      head.innerHTML = '<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
+      head.innerHTML='<div class="sheet-title">⚙️ 控制面板</div><button class="sheet-close" id="btnSheetClose">✕</button>';
       document.getElementById('btnSheetClose').addEventListener('pointerup',()=>openDrawer(false),{passive:true});
       if(!paused){ paused=true; $('btnPause').textContent='▶️ 繼續'; }
     }
   }
-  function closeDrawerIfOpen(){ if(isMobile() && isDrawerOpen()) openDrawer(false); }
+  function closeDrawerIfOpen(){ if(isMobile() && wrap.classList.contains('open')) openDrawer(false); }
+  const btnOpenDrawer=document.getElementById('btnOpenDrawer');
   if(btnOpenDrawer){ bindTap(btnOpenDrawer, ()=>openDrawer(true)); }
   mask.addEventListener('pointerup', ()=>openDrawer(false), {passive:true});
 
-  /* ===== 主按鈕：按下就收抽屜，好看球；自動關閉不清排程 ===== */
+  /* ===== 主按鈕 ===== */
   bindTap($('btnDrop'), ()=>{ paused=false; $('btnPause').textContent='⏸️ 暫停'; scheduleBatch(); tryPlayMusic(); closeDrawerIfOpen(); });
-  bindTap($('btnAuto'), (e)=>{
-    auto=!auto;
-    if(!auto){ e.target.textContent='🔁 自動投放：關'; /* 不清空 microQueue，讓剩餘球跑完 */ }
-    else{ e.target.textContent='🔁 自動投放：開'; paused=false; $('btnPause').textContent='⏸️ 暫停'; emitClock=0; scheduleBatch(); tryPlayMusic(); }
+  bindTap($('btnAuto'), (e)=>{ auto=!auto;
+    if(!auto){ e.target.textContent='🔁 自動投放：關'; }            // 不清 microQueue，讓剩餘跑完
+    else      { e.target.textContent='🔁 自動投放：開'; paused=false; $('btnPause').textContent='⏸️ 暫停'; emitClock=0; scheduleBatch(); tryPlayMusic(); }
     closeDrawerIfOpen();
   });
   bindTap($('btnPause'), (e)=>{ paused=!paused; e.target.textContent=paused?'▶️ 繼續':'⏸️ 暫停'; if(!paused) tryPlayMusic(); closeDrawerIfOpen(); });
   bindTap($('btnReset'), ()=>{ auto=false; $('btnAuto').textContent='🔁 自動投放：關'; microQueue.length=0; balls.length=0; pauseMusic(); build(); drawBoard(); drawChart(); setMusicIcon(); closeDrawerIfOpen(); });
 
   /* ===== 啟動 ===== */
-  resizeAll();
-  requestAnimationFrame(tick);
+  boardEl.style.width='100%'; chartEl.style.width='100%';
+  boardEl.style.height='46vh'; chartEl.style.height='22vh';
+  if(isMobile()){ boardEl.style.height='48svh'; chartEl.style.height='24svh'; }
+  resizeAll(); requestAnimationFrame(tick);
 })();
 </script>
 </body>
